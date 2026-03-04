@@ -1,10 +1,10 @@
 {
   "files": {
-    "main.js": "/hana/static/js/main.c205f51b.js",
+    "main.js": "/hana/static/js/main.4169f54a.js",
     "index.html": "/hana/index.html",
-    "main.c205f51b.js.map": "/hana/static/js/main.c205f51b.js.map"
+    "main.4169f54a.js.map": "/hana/static/js/main.4169f54a.js.map"
   },
   "entrypoints": [
-    "static/js/main.c205f51b.js"
+    "static/js/main.4169f54a.js"
   ]
 }
