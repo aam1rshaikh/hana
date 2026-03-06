@@ -1,5 +1,8 @@
 {
   "buildCommand": "npm run vercel-build",
   "outputDirectory": "build",
+  "env": {
+    "PUBLIC_URL": "/"
+  },
   "rewrites": [{ "source": "/(.*)", "destination": "/" }]
 }
