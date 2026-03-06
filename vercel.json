@@ -1,5 +1,5 @@
 {
-  "buildCommand": "CI=false react-scripts build",
+  "buildCommand": "npm install --legacy-peer-deps && CI=false react-scripts build",
   "outputDirectory": "build",
   "env": {
     "PUBLIC_URL": "/"
