@@ -1018,6 +1018,237 @@ function PolaroidFlora({scene}) {
 }
 
 // ─── SWIPE HINT ──────────────────────────────────────────────────────────────
+// ─── COSMIC LOVE SCALE ───────────────────────────────────────────────────────
+const COSMIC_STEPS = [
+  {
+    img: "https://images.unsplash.com/photo-1614730321146-b6fa6a46bcb4?w=300&q=80",
+    label: "Earth", size: 54, color: "#4a9eff", glow: "rgba(74,158,255,0.4)", desc: "12,742 km wide",
+  },
+  {
+    img: "https://images.unsplash.com/photo-1575881875475-31023242e3f9?w=300&q=80",
+    label: "The Sun", size: 78, color: "#ffb347", glow: "rgba(255,179,71,0.5)", desc: "109× Earth",
+  },
+  {
+    img: "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=300&q=80",
+    label: "UY Scuti", size: 104, color: "#ff6b35", glow: "rgba(255,107,53,0.5)", desc: "1,700× the Sun",
+  },
+  {
+    img: "https://images.unsplash.com/photo-1543722530-d2c3201371e7?w=300&q=80",
+    label: "The Milky Way", size: 130, color: "#c4b5fd", glow: "rgba(196,181,253,0.5)", desc: "100,000 light years",
+  },
+  {
+    img: "https://images.unsplash.com/photo-1502134249126-9f3755a50d78?w=300&q=80",
+    label: "The Observable\nUniverse", size: 158, color: "#818cf8", glow: "rgba(129,140,248,0.5)", desc: "93 billion light years",
+  },
+  {
+    img: null, isHeart: true,
+    label: "My love\nfor you", size: 186, color: "#ff6b9d", glow: "rgba(255,107,157,0.7)", desc: "∞ × the Universe",
+  },
+];
+
+function CosmicLoveSection() {
+  const [unlocked, setUnlocked] = useState(false);
+  const [activeIdx, setActiveIdx] = useState(null);
+  const [animating, setAnimating] = useState(false);
+  const sectionRef = useRef(null);
+
+  // Auto-step through on unlock
+  useEffect(() => {
+    if (!unlocked) { setActiveIdx(null); return; }
+    setActiveIdx(0);
+    let i = 0;
+    const iv = setInterval(() => {
+      i++;
+      if (i >= COSMIC_STEPS.length) { clearInterval(iv); return; }
+      setActiveIdx(i);
+    }, 900);
+    return () => clearInterval(iv);
+  }, [unlocked]);
+
+  const current = activeIdx !== null ? COSMIC_STEPS[activeIdx] : null;
+  const isComplete = activeIdx === COSMIC_STEPS.length - 1;
+
+  return (
+    <div ref={sectionRef} style={{background:"linear-gradient(180deg,#fef9f0 0%,#0a0a1a 18%,#0a0a1a 100%)",padding:"0 0 80px"}}>
+      {/* Wave transition */}
+      <div style={{width:"100%",overflow:"hidden",lineHeight:0,marginBottom:-2}}>
+        <svg viewBox="0 0 1200 80" preserveAspectRatio="none" style={{width:"100%",height:60,display:"block"}}>
+          <path d="M0,0 C300,80 900,0 1200,60 L1200,0 L0,0 Z" fill="#fef9f0"/>
+        </svg>
+      </div>
+
+      <div style={{textAlign:"center",padding:"40px 20px 0",position:"relative"}}>
+
+        {/* Header — always visible */}
+        <Fade>
+          <div style={{maxWidth:440,margin:"0 auto 32px"}}>
+            <div style={{fontSize:"2.4rem",marginBottom:16,animation:"hanaSparkle 2s ease-in-out infinite"}}>🌌</div>
+            <p style={{fontSize:"0.72rem",letterSpacing:"0.28em",textTransform:"uppercase",color:"#d4a843",marginBottom:12,fontFamily:"'Playfair Display',serif"}}>A question for you</p>
+            <h2 style={{fontFamily:"'Playfair Display',serif",fontStyle:"italic",color:"white",fontSize:"clamp(1.5rem,4vw,2.2rem)",marginBottom:16,textShadow:"0 0 30px rgba(255,182,193,0.3)"}}>
+              How much do I love you?
+            </h2>
+            <button
+              onClick={() => setUnlocked(u => !u)}
+              style={{
+                background:"linear-gradient(135deg,rgba(255,107,157,0.15),rgba(212,168,67,0.15))",
+                border:"1px solid rgba(255,182,193,0.35)",
+                color:"white",
+                fontFamily:"'Playfair Display',serif",
+                fontStyle:"italic",
+                fontSize:"1rem",
+                padding:"14px 36px",
+                borderRadius:50,
+                cursor:"pointer",
+                backdropFilter:"blur(8px)",
+                boxShadow:"0 0 30px rgba(255,107,157,0.2)",
+                letterSpacing:"0.05em",
+                transition:"all 0.3s ease",
+              }}
+              onMouseEnter={e=>{e.currentTarget.style.boxShadow="0 0 50px rgba(255,107,157,0.4)";e.currentTarget.style.transform="scale(1.04)";}}
+              onMouseLeave={e=>{e.currentTarget.style.boxShadow="0 0 30px rgba(255,107,157,0.2)";e.currentTarget.style.transform="scale(1)";}}
+            >
+              {unlocked ? "Hide ✨" : "Click here to find out ✨"}
+            </button>
+          </div>
+        </Fade>
+
+        {/* Cosmic reveal */}
+        {unlocked && (
+          <div style={{maxWidth:480,margin:"0 auto"}}>
+            <p style={{fontSize:"0.72rem",letterSpacing:"0.28em",textTransform:"uppercase",color:"#d4a843",marginBottom:24,fontFamily:"'Playfair Display',serif"}}>
+              Scale of my love
+            </p>
+
+            {/* Steps row */}
+            {/* Steps row — active is full size, older ones shrink progressively */}
+            <div style={{display:"flex",alignItems:"flex-end",justifyContent:"center",gap:"clamp(4px,1.5vw,12px)",marginBottom:40,flexWrap:"nowrap",width:"100%",padding:"12px 12px 0",boxSizing:"border-box"}}>
+              {COSMIC_STEPS.map((step, i) => {
+                if (activeIdx === null || i > activeIdx) return null;
+                const isActive = i === activeIdx;
+                const age = activeIdx - i;
+                const visibleCount = activeIdx + 1;
+                const shrinkFactor = Math.pow(0.72, age);
+                const totalUnits = Array.from({length: visibleCount}, (_, k) => Math.pow(0.72, visibleCount - 1 - k)).reduce((a,b)=>a+b,0);
+                const gapTotal = (visibleCount - 1) * 8;
+                const baseSize = Math.min(160, Math.max(32, (Math.min(480, window.innerWidth * 0.92) - gapTotal) / totalUnits * shrinkFactor * (1/shrinkFactor)));
+                const finalSize = Math.max(Math.round(baseSize * shrinkFactor), 24);
+
+                return (
+                  <div key={i} style={{
+                    display:"flex",flexDirection:"column",alignItems:"center",gap:4,
+                    transition:"all 0.6s cubic-bezier(0.34,1.56,0.64,1)",
+                    flexShrink:0,
+                  }}>
+                    {/* Glow ring on active */}
+                    <div style={{position:"relative",display:"flex",alignItems:"center",justifyContent:"center",padding:isActive?6:0}}>
+                      {isActive && (
+                        <div style={{
+                          position:"absolute",
+                          width: finalSize * 1.7,
+                          height: finalSize * 1.7,
+                          borderRadius:"50%",
+                          background:`radial-gradient(circle, ${step.glow} 0%, transparent 70%)`,
+                          animation:"jjkOrb 2s ease-in-out infinite",
+                          pointerEvents:"none",
+                        }}/>
+                      )}
+                      {/* Image or heart */}
+                      {step.isHeart ? (
+                        <div style={{
+                          width:finalSize, height:finalSize,
+                          borderRadius:"50%",
+                          background:"radial-gradient(circle at 40% 35%, #ff8fb3, #ff3d7f)",
+                          display:"flex",alignItems:"center",justifyContent:"center",
+                          fontSize: finalSize * 0.45,
+                          boxShadow: isActive ? `0 0 30px ${step.glow}, 0 0 60px ${step.glow}` : "none",
+                          transition:"all 0.6s ease",
+                          position:"relative",zIndex:1,
+                        }}>💗</div>
+                      ) : (
+                        <div style={{
+                          width:finalSize, height:finalSize,
+                          borderRadius:"50%",
+                          overflow:"hidden",
+                          boxShadow: isActive ? `0 0 20px ${step.glow}, 0 0 40px ${step.glow}` : `0 0 4px ${step.glow}`,
+                          transition:"all 0.6s ease",
+                          position:"relative",zIndex:1,
+                          background:"#111",
+                          flexShrink:0,
+                          opacity: isActive ? 1 : 0.7,
+                        }}>
+                          <img src={step.img} alt={step.label}
+                            style={{width:"100%",height:"100%",objectFit:"cover",display:"block",borderRadius:"50%"}}/>
+                        </div>
+                      )}
+                    </div>
+                    {/* Label — always show, size scales with circle */}
+                    <div style={{
+                      fontSize: `clamp(0.38rem, ${Math.max(finalSize/11, 1.2)}vw, 0.65rem)`,
+                      color: isActive ? step.color : "rgba(255,255,255,0.4)",
+                      textAlign:"center",
+                      fontFamily:"'Playfair Display',serif",
+                      fontStyle: step.isHeart ? "italic" : "normal",
+                      lineHeight:1.3,
+                      whiteSpace:"pre-line",
+                      transition:"all 0.5s ease",
+                      maxWidth: finalSize + 10,
+                    }}>
+                      {step.label}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Active step detail card */}
+            {current && (
+              <div style={{
+                background:"rgba(255,255,255,0.04)",
+                border:`1px solid ${current.glow}`,
+                borderRadius:20,
+                padding:"24px 28px",
+                backdropFilter:"blur(12px)",
+                boxShadow:`0 0 40px ${current.glow}`,
+                transition:"all 0.5s ease",
+                minHeight:100,
+              }}>
+                <div style={{fontSize:"2rem",marginBottom:8}}>
+                  {current.isHeart ? "💗" : (
+                    <img src={current.img} alt={current.label}
+                      style={{width:56,height:56,borderRadius:"50%",objectFit:"cover",boxShadow:`0 0 20px ${current.glow}`}}/>
+                  )}
+                </div>
+                <p style={{
+                  fontFamily:"'Playfair Display',serif",
+                  fontStyle:"italic",
+                  fontSize:"1.1rem",
+                  color:"white",
+                  margin:"0 0 6px",
+                  whiteSpace:"pre-line",
+                }}>
+                  {current.label}
+                </p>
+                <p style={{fontSize:"0.78rem",color:current.color,margin:0,letterSpacing:"0.05em"}}>
+                  {current.desc}
+                </p>
+
+                {/* Final heart message */}
+                {isComplete && (
+                  <div style={{marginTop:24,borderTop:"1px solid rgba(255,107,157,0.2)",paddingTop:20,animation:"fadeIn 0.8s ease"}}>
+                    <p style={{fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:"1.15rem",color:"white",lineHeight:1.7,margin:"0",textShadow:"0 0 20px rgba(255,107,157,0.4)"}}>
+                        You are the loml Hana💗
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function SwipeHintWrapper({children}) {
   const [visible,setVisible]=useState(true);
   useEffect(()=>{
@@ -1073,6 +1304,7 @@ function PhotoCarousel({photos,captions={},onDelete,deleteId,pwd,setPwd,deleting
   const [noAnim,setNoAnim]=us(false);
   const [dragX,setDragX]=us(0);
   const [dragging,setDragging]=us(false);
+  const [loadedImgs,setLoadedImgs]=us(new Set());
   const startX=ur(null);
 
   const dismiss=(dir)=>{
@@ -1136,14 +1368,23 @@ function PhotoCarousel({photos,captions={},onDelete,deleteId,pwd,setPwd,deleting
 
   const cardBody=(photo,bgComp,isTop)=>{
     const Bg=bgComp;
+    const loaded=loadedImgs.has(photo.url);
     return <>
-      <div style={{position:"absolute",inset:0,zIndex:0}}><Bg/></div>
-      <div style={{position:"relative",zIndex:10,padding:"44px 52px 26px",display:"flex",flexDirection:"column",alignItems:"center"}}>
+      <div style={{position:"absolute",inset:0,zIndex:0,opacity:loaded?1:0,transition:"opacity 0.4s ease"}}><Bg/></div>
+      {/* Skeleton shimmer shown while loading */}
+      {!loaded&&<div style={{position:"absolute",inset:0,zIndex:5,background:"linear-gradient(135deg,#1a1a2e,#16213e)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+        <div style={{width:"70%",borderRadius:4,overflow:"hidden",background:"rgba(255,255,255,0.06)"}}>
+          <div style={{width:"100%",paddingBottom:"100%",background:"linear-gradient(90deg,rgba(255,255,255,0.03) 0%,rgba(255,255,255,0.09) 50%,rgba(255,255,255,0.03) 100%)",backgroundSize:"200% 100%",animation:"skeletonSlide 1.4s ease-in-out infinite"}}/>
+        </div>
+      </div>}
+      <div style={{position:"relative",zIndex:10,padding:"44px 52px 26px",display:"flex",flexDirection:"column",alignItems:"center",opacity:loaded?1:0,transition:"opacity 0.4s ease"}}>
         <div style={{width:"100%",background:"#fafaf5",borderRadius:3,padding:"6px 6px 0 6px",
           boxShadow:"0 8px 30px rgba(0,0,0,0.7)",
           transform:`rotate(${isTop?-0.8:0.6}deg)`}}>
           <img src={photo.url} alt="" decoding="async"
-            style={{width:"100%",height:"auto",display:"block",borderRadius:2,pointerEvents:"none"}}/>
+            style={{width:"100%",height:"auto",display:"block",borderRadius:2,pointerEvents:"none"}}
+            onLoad={()=>setLoadedImgs(prev=>new Set([...prev,photo.url]))}
+          />
           <div style={{position:"relative",height:22,display:"flex",alignItems:"center",justifyContent:"center"}}>
             <PolaroidFlora scene={photos.indexOf(photo)%GHIBLI_SCENES.length}/>
             {captions[photo.name]&&(
@@ -1155,7 +1396,8 @@ function PhotoCarousel({photos,captions={},onDelete,deleteId,pwd,setPwd,deleting
         </div>
       </div>
       <div style={{position:"relative",zIndex:10,textAlign:"center",color:"rgba(255,255,255,0.8)",
-        fontSize:"0.72rem",fontStyle:"italic",letterSpacing:"0.1em",padding:"4px 0 26px"}}>
+        fontSize:"0.72rem",fontStyle:"italic",letterSpacing:"0.1em",padding:"4px 0 26px",
+        opacity:loaded?1:0,transition:"opacity 0.4s ease"}}>
         {photos.indexOf(photo)+1} / {photos.length}
       </div>
     </>;
@@ -1349,6 +1591,19 @@ function MemoriesSection() {
     e.target.value="";
   };
 
+  // Retry helper: attempts fn up to maxTries with exponential backoff
+  const withRetry=async(fn,maxTries=3,delayMs=800)=>{
+    let lastErr;
+    for(let i=0;i<maxTries;i++){
+      try{ const result=await fn(); return result; }
+      catch(e){
+        lastErr=e;
+        if(i<maxTries-1) await new Promise(r=>setTimeout(r,delayMs*(i+1)));
+      }
+    }
+    throw lastErr;
+  };
+
   const doUpload=async()=>{
     if(!pendingFile)return;
     setUploading(true);
@@ -1371,25 +1626,32 @@ function MemoriesSection() {
         img.src=url;
       });
       const fileName=`photo_${Date.now()}.jpg`;
-      const r=await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${fileName}`,{
-        method:"POST",
-        headers:{"apikey":SUPABASE_ANON,"Authorization":`Bearer ${SUPABASE_ANON}`,"Content-Type":"image/jpeg","x-upsert":"true"},
-        body:compressed
+      // Retry upload up to 3 times with backoff
+      await withRetry(async()=>{
+        const r=await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${fileName}`,{
+          method:"POST",
+          headers:{"apikey":SUPABASE_ANON,"Authorization":`Bearer ${SUPABASE_ANON}`,"Content-Type":"image/jpeg","x-upsert":"true"},
+          body:compressed
+        });
+        if(!r.ok){const err=await r.text();throw new Error(`Upload failed (${r.status}): ${err}`);}
       });
-      if(r.ok){
-        // Save caption to Supabase if provided
-        if(pendingCaption.trim()){
-          await fetch(`${SUPABASE_URL}/rest/v1/photo_captions`,{
+      // Save caption with retry
+      if(pendingCaption.trim()){
+        await withRetry(async()=>{
+          const r=await fetch(`${SUPABASE_URL}/rest/v1/photo_captions`,{
             method:"POST",
             headers:{...sbHeaders,"Prefer":"return=minimal"},
             body:JSON.stringify({filename:fileName,caption:pendingCaption.trim()})
           });
-        }
-        showToast("Memory saved ✨");
-        setPendingFile(null);setPendingCaption("");
-        loadPhotos(true);
-      } else showToast(`Upload failed (${r.status})`);
-    }catch(e){console.error(e);showToast("Upload failed: "+e.message);}
+          if(!r.ok){const err=await r.text();throw new Error(`Caption save failed: ${err}`);}
+        });
+      }
+      showToast("Memory saved ✨");
+      setPendingFile(null);setPendingCaption("");
+      // Small delay so Supabase storage has time to fully commit before we list
+      await new Promise(r=>setTimeout(r,800));
+      loadPhotos(true);
+    }catch(e){console.error(e);showToast("Upload failed after retries: "+e.message);}
     setUploading(false);
   };
 
@@ -1397,14 +1659,15 @@ function MemoriesSection() {
     if(pwd!=="Hana"){showToast("Wrong password ✕");setPwd("");return;}
     setDeleting(true);
     try{
-      const r=await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${deleteId}`,{
-        method:"DELETE",
-        headers:{"apikey":SUPABASE_ANON,"Authorization":`Bearer ${SUPABASE_ANON}`}
+      await withRetry(async()=>{
+        const r=await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${deleteId}`,{
+          method:"DELETE",
+          headers:{"apikey":SUPABASE_ANON,"Authorization":`Bearer ${SUPABASE_ANON}`}
+        });
+        if(!r.ok){const err=await r.text();throw new Error(`Delete failed (${r.status}): ${err}`);}
       });
-      console.log("Delete status:",r.status);
-      if(r.ok){showToast("Photo removed 🍃");setDeleteId(null);setPwd("");photosCache.current=null;loadPhotos(true);}
-      else{const err=await r.text();console.error("Delete error:",err);showToast("Could not delete - try again");}
-    }catch(e){console.error(e);showToast("Could not delete, try again");}
+      showToast("Photo removed 🍃");setDeleteId(null);setPwd("");photosCache.current=null;loadPhotos(true);
+    }catch(e){console.error(e);showToast("Could not delete - try again");}
     setDeleting(false);
   };
 
@@ -1636,6 +1899,104 @@ function VideoPlayer({videoId}) {
   );
 }
 
+function VideoSlider() {
+  const VIDEOS = [
+    {id:"JZtnlFuytrA", thumb:"https://img.youtube.com/vi/JZtnlFuytrA/maxresdefault.jpg", isShort:false},
+    {id:"d-prAggDs9Q", thumb:"https://img.youtube.com/vi/d-prAggDs9Q/maxresdefault.jpg", isShort:true},
+    {id:"qylISCGkX1Y", thumb:"data:image/jpeg;base64,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", isShort:true},
+    {id:"IqByc5c9OwI", thumb:"https://img.youtube.com/vi/IqByc5c9OwI/maxresdefault.jpg", isShort:true},
+  ];
+  const [idx,setIdx]=useState(0);
+  const [open,setOpen]=useState(false);
+  const dragStart=useRef(null);
+  const prev=()=>setIdx(i=>(i-1+VIDEOS.length)%VIDEOS.length);
+  const next=()=>setIdx(i=>(i+1)%VIDEOS.length);
+  const onTouchStart=e=>{dragStart.current=e.touches[0].clientX;};
+  const onTouchEnd=e=>{
+    if(dragStart.current===null)return;
+    const dx=e.changedTouches[0].clientX-dragStart.current;
+    if(Math.abs(dx)>40){dx<0?next():prev();}
+    dragStart.current=null;
+  };
+  const v=VIDEOS[idx];
+  return (
+    <>
+      <div style={{position:"relative"}} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+        {/* Thumbnail */}
+        <div onClick={()=>setOpen(true)} style={{
+          position:"relative",cursor:"pointer",borderRadius:20,overflow:"hidden",
+          boxShadow:"0 20px 60px rgba(0,0,0,0.7)",
+          aspectRatio:v.isShort?"9/16":"460/409",
+          maxWidth:v.isShort?260:380,margin:"0 auto",
+        }}>
+          <img src={v.thumb} alt="thumbnail"
+            style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}
+            onError={e=>{e.target.src=`https://img.youtube.com/vi/${v.id}/hqdefault.jpg`;}}
+          />
+          <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.08)"}}/>
+          <div style={{
+            position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",
+            width:44,height:44,borderRadius:"50%",background:"rgba(0,0,0,0.3)",
+            backdropFilter:"blur(4px)",border:"1.5px solid rgba(255,255,255,0.25)",
+            display:"flex",alignItems:"center",justifyContent:"center",
+          }}>
+            <div style={{width:0,height:0,borderTop:"7px solid transparent",borderBottom:"7px solid transparent",borderLeft:"12px solid rgba(255,255,255,0.85)",marginLeft:3}}/>
+          </div>
+        </div>
+        {/* Arrows */}
+        <button onClick={prev} style={{
+          position:"absolute",left:-16,top:"50%",transform:"translateY(-50%)",
+          background:"rgba(0,0,0,0.5)",border:"1px solid rgba(255,255,255,0.2)",
+          color:"white",width:34,height:34,borderRadius:"50%",cursor:"pointer",
+          fontSize:"1.1rem",display:"flex",alignItems:"center",justifyContent:"center",
+          backdropFilter:"blur(6px)",zIndex:10,
+        }}>‹</button>
+        <button onClick={next} style={{
+          position:"absolute",right:-16,top:"50%",transform:"translateY(-50%)",
+          background:"rgba(0,0,0,0.5)",border:"1px solid rgba(255,255,255,0.2)",
+          color:"white",width:34,height:34,borderRadius:"50%",cursor:"pointer",
+          fontSize:"1.1rem",display:"flex",alignItems:"center",justifyContent:"center",
+          backdropFilter:"blur(6px)",zIndex:10,
+        }}>›</button>
+      </div>
+      {/* Dots */}
+      <div style={{display:"flex",justifyContent:"center",gap:6,marginTop:14}}>
+        {VIDEOS.map((_,i)=>(
+          <div key={i} onClick={()=>setIdx(i)} style={{
+            width:i===idx?18:7,height:7,borderRadius:4,
+            background:i===idx?"#d4a843":"rgba(255,255,255,0.3)",
+            cursor:"pointer",transition:"all 0.3s",
+          }}/>
+        ))}
+      </div>
+      {/* Lightbox */}
+      {open&&(
+        <div onClick={()=>setOpen(false)} style={{
+          position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,0.92)",
+          display:"flex",alignItems:"center",justifyContent:"center",
+          padding:"20px",animation:"fadeIn 0.2s ease",
+        }}>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:v.isShort?360:700,position:"relative"}}>
+            <button onClick={()=>setOpen(false)} style={{
+              position:"absolute",top:-40,right:0,background:"none",border:"none",
+              color:"rgba(255,255,255,0.6)",fontSize:"1.4rem",cursor:"pointer",padding:"4px 10px",
+            }}>✕</button>
+            <div style={{position:"relative",paddingBottom:v.isShort?"177.78%":"56.25%",borderRadius:16,overflow:"hidden"}}>
+              <iframe
+                src={`https://www.youtube.com/embed/${v.id}?autoplay=1&rel=0&modestbranding=1`}
+                title="video" frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                style={{position:"absolute",inset:0,width:"100%",height:"100%"}}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function CommentsSection() {
   const [name,setName]=useState(null);
   const [text,setText]=useState("");
@@ -1736,11 +2097,13 @@ const globalCss=`
   @keyframes fly{0%{transform:translate(0,0);opacity:0;}25%{opacity:1;}75%{opacity:0.8;}100%{transform:translate(30px,-40px);opacity:0;}}
   @keyframes wave1{0%,100%{transform:translateX(0) scaleY(1);}50%{transform:translateX(-18px) scaleY(1.12);}}
   @keyframes shimmer{0%,100%{text-shadow:0 0 18px rgba(255,182,193,0.5),0 0 40px rgba(255,182,193,0.2);}50%{text-shadow:0 0 28px rgba(255,182,193,0.9),0 0 60px rgba(255,182,193,0.4);}}
+  @keyframes skeletonSlide{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
   @keyframes steam{0%{transform:translateY(0) scale(1);opacity:0.4;}50%{transform:translateY(-12px) scale(1.3);opacity:0.6;}100%{transform:translateY(-24px) scale(1.6);opacity:0;}}
   @keyframes swipeHintFade{0%{opacity:1;}70%{opacity:1;}100%{opacity:0;}}
   @keyframes hintSwipe{0%{transform:translateX(0);}30%{transform:translateX(-18px);}60%{transform:translateX(14px);}100%{transform:translateX(0);}}
   @keyframes hintPulseL{0%,100%{opacity:0.4;}50%{opacity:1;transform:translateX(-4px);}}
   @keyframes hintPulseR{0%,100%{opacity:0.4;}50%{opacity:1;transform:translateX(4px);}}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
   @keyframes cursedPulse{0%,100%{opacity:0.7;transform:translate(-50%,-50%) scale(1);}50%{opacity:1;transform:translate(-50%,-50%) scale(1.12);}}
   @keyframes cursedLine{0%,100%{opacity:0.4;transform:scaleX(0.8);}50%{opacity:1;transform:scaleX(1.05);}}
   @keyframes hanaSparkle{0%,100%{color:white;text-shadow:0 0 20px rgba(255,182,193,0.4);}30%{color:#ffd6e8;text-shadow:0 0 30px rgba(255,182,193,1),0 0 60px rgba(255,182,193,0.6),0 0 100px rgba(255,150,180,0.4);}60%{color:#ffe8f0;text-shadow:0 0 15px rgba(255,182,193,0.6);}}
@@ -1972,10 +2335,10 @@ export default function App() {
               {scene:<SceneFireworks/>,emoji:"🎆",title:"New Year's Eve fireworks",desc:"We planned this, the sky exploding into fireworks at midnight and us witnessing it together. It will be such an amazing experience with you by my side."},
               {scene:<SceneNight/>,emoji:"🕌",title:"Muhammad Ali road in Ramadan",desc:"I wanted to go here in Ramadan. I knew places where I wanted to take you in Ramadan and have all the delicious food with you. Nalli nihari, kebabs, sweets and everything. That would have been really fun. You could bring your sister too if you want."},
               {scene:<SceneMovie/>,emoji:"🎬",title:"Movie dates - for real",desc:"Not Rave. Actually sitting next to each other in the dark, sharing popcorn, whispering reactions."},
-              {scene:<SceneStars/>,emoji:"✨",title:"Stargazing",desc:"Sitting in an open sky, losing track of time. Just us and more stars than we could ever count and enjoying and endless yapping."},
-              {scene:<SceneForest/>,emoji:"🌍",title:"Travelling",desc:"I wanted to go to Kerala with you in India first. I have been asked to go but I said I won't cause I promised to go with my love, and also so many places here in India and all over the world. Don't worry, won't make you walk too much Hana, will go to the places which are easily accessible aur Ha tumko chhod kar kahi bhi nahi jaaunga mai, I promise. I wanted to go to the Umrah first with you, would have been peaceful."},
+              {scene:<SceneStars/>,emoji:"✨",title:"Stargazing",desc:"Sitting in an open sky, losing track of time. Just us and more stars than we could ever count and enjoying both the silence and endless yapping."},
+              {scene:<SceneForest/>,emoji:"🌍",title:"Travelling",desc:"I wanted to go to Kerala with you in India first. I have been asked to go there but I always said, I won't cause I promised to go there with my love, and also so many places here in India and all over the world. Don't worry, won't make you walk too much Hana. Aur Ha tumko chhod kar kahi bhi nahi jaaunga mai, I promise. I wanted to go to the Umrah as well with you, would have been peaceful."},
               {scene:<SceneBadminton/>,emoji:"🏸",title:"Badminton",desc:"I so want to play badminton with you and I have a feeling that you are gonna do good and don't worry I won't nag, pakka!"},
-              {scene:<ScenePottery/>,emoji:"🏺",title:"Pottery",desc:"I know you liked pottery so much. It will be a really amazing experience to try our hands on with you."},
+              {scene:<ScenePottery/>,emoji:"🏺",title:"Pottery",desc:"I know you liked pottery so much. It would be a really an amazing experience to try our hands on making something. We can try making a pot first and put a cactus plant in that."},
               {scene:<SceneMorning/>,emoji:"🍳",title:"French toast and cats",desc:"I really wanted to have the French toast made by you Hana (yes, I can have sugar made by my sugar 😌). You do make amazing food. I really liked the pancakes that you sent and the pulao, loved it. I am sorry, I couldn't get you the cat. But if you give me one chance, I will get you one pakka, wo bhi orange cat, I know you like them."},
             ].map((card,i)=>(
               <Fade key={i} delay={i*0.05}>
@@ -2021,6 +2384,9 @@ export default function App() {
         </Fade>
       </div>
 
+      {/* COSMIC LOVE */}
+      <CosmicLoveSection />
+
       {/* MEMORIES */}
       <MemoriesSection />
 
@@ -2031,7 +2397,7 @@ export default function App() {
           <p style={{fontSize:"0.7rem",letterSpacing:"0.28em",textTransform:"uppercase",color:"#d4a843",marginBottom:10,fontFamily:"'Playfair Display',serif"}}>A little something</p>
           <h2 style={{fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:"clamp(1.5rem,4vw,2.2rem)",color:"white",marginBottom:28,textShadow:"0 0 30px rgba(255,182,193,0.3)"}}>For you 🌸</h2>
 
-          <VideoPlayer videoId="qylISCGkX1Y" />
+          <VideoSlider />
         </div>
       </div>
 
