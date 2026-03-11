@@ -63,7 +63,6 @@ function CursorTrail() {
   return (
     <>
       <div ref={containerRef} style={{position:"fixed",inset:0,pointerEvents:"none",zIndex:9998,overflow:"hidden"}} />
-      <style>{`@keyframes heartFloat{0%{opacity:1;transform:translate(0,0) scale(1.2);}30%{opacity:0.9;transform:translate(calc(var(--dx)*0.4),-20px) scale(1);}100%{opacity:0;transform:translate(var(--dx),-65px) scale(0.3);}}`}</style>
     </>
   );
 }
@@ -79,15 +78,23 @@ function GoldDust() {
     drift: Math.round(-40+Math.random()*80)+"px",
     color: ["rgba(212,168,67,0.5)","rgba(255,182,193,0.45)","rgba(255,220,180,0.4)","rgba(200,220,255,0.4)"][i%4],
   })), []);
+  const [paused, setPaused] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if(!ref.current) return;
+    const obs = new IntersectionObserver(([e]) => setPaused(!e.isIntersecting), {threshold:0});
+    obs.observe(document.body);
+    return () => obs.disconnect();
+  }, []);
   return (
-    <div style={{position:"fixed",inset:0,pointerEvents:"none",zIndex:9990,overflow:"hidden"}}>
-      <style>{`@keyframes dustRise{0%{transform:translateY(105vh) translateX(0) scale(0.6);opacity:0;}8%{opacity:1;}90%{opacity:0.7;}100%{transform:translateY(-8vh) translateX(var(--drift)) scale(1.1);opacity:0;}}`}</style>
+    <div ref={ref} style={{position:"fixed",inset:0,pointerEvents:"none",zIndex:9990,overflow:"hidden"}}>
       {particles.map(p => (
         <div key={p.id} style={{
           position:"absolute", left:`${p.left}%`, bottom:"-10px",
           width:p.size, height:p.size, borderRadius:"50%", background:p.color,
           "--drift":p.drift,
           animation:`dustRise ${p.dur}s ease-in-out infinite ${p.delay}s`,
+          animationPlayState: paused ? "paused" : "running",
           willChange:"transform, opacity",
         }} />
       ))}
@@ -149,7 +156,7 @@ function Fade({children, delay=0}) {
     return () => fadeObserver.unobserve(el);
   }, [delay]);
   return (
-    <div ref={ref} style={{opacity:0, transform:"translateY(22px)", willChange:"opacity, transform"}}>
+    <div ref={ref} style={{opacity:0, transform:"translateY(22px) translateZ(0)", willChange:"opacity, transform"}}>
       {children}
     </div>
   );
@@ -160,19 +167,18 @@ function ChapterBloom({children}) {
   const ref = useRef(null);
   useEffect(()=>{
     const el = ref.current; if(!el||!fadeObserver) return;
-    el.style.transition="opacity 1.1s ease, filter 1.1s ease";
-    el.style.filter="blur(10px) brightness(1.8)";
+    el.style.transition="opacity 1.1s ease, transform 1.1s ease";
     const obs = new IntersectionObserver(([e])=>{
       if(e.isIntersecting){
         el.style.opacity="1";
-        el.style.filter="blur(0) brightness(1)";
+        el.style.transform="translateY(0) translateZ(0)";
         obs.disconnect();
       }
     },{threshold:0.15});
     obs.observe(el);
     return()=>obs.disconnect();
   },[]);
-  return <div ref={ref} style={{opacity:0,filter:"blur(10px) brightness(1.8)",willChange:"opacity,filter"}}>{children}</div>;
+  return <div ref={ref} style={{opacity:0,transform:"translateY(16px) translateZ(0)",willChange:"opacity,transform"}}>{children}</div>;
 }
 
 
@@ -1405,7 +1411,10 @@ function PhotoCarousel({photos,captions={},onDelete,deleteId,pwd,setPwd,deleting
 
   return (
     <div style={{position:"relative",maxWidth:400,margin:"0 auto",paddingBottom:4}}>
-      <div style={{display:"none"}}>{photos.map(ph=><img key={ph.name} src={ph.url} alt=""/>)}</div>
+      {/* Preload only adjacent photos, not entire set */}
+      <div style={{display:"none"}}>
+        {[-1,0,1,2].map(offset=>{const ph=photos[(idx+offset+photos.length)%photos.length];return ph?<img key={ph.name} src={ph.url} alt=""/>:null;})}
+      </div>
 
       {/* Outer wrapper: position:relative so arrows anchor here */}
       <div style={{position:"relative"}}>
@@ -1437,6 +1446,7 @@ function PhotoCarousel({photos,captions={},onDelete,deleteId,pwd,setPwd,deleting
             transition:flyAnim,
             zIndex:10,cursor:dragging?"grabbing":"grab",
             userSelect:"none",touchAction:"pan-y",
+            willChange:"transform",
           }}
             onMouseDown={onMD} onMouseMove={onMM} onMouseUp={onMU} onMouseLeave={onMU}
             onTouchStart={onTD} onTouchMove={onTM} onTouchEnd={onTE}
@@ -1699,30 +1709,25 @@ function MemoriesSection() {
     const rect=sectionRef.current.getBoundingClientRect();
     const cx=(e.clientX!==undefined?e.clientX:(e.touches&&e.touches[0]?e.touches[0].clientX:rect.left+rect.width/2))-rect.left;
     const cy=(e.clientY!==undefined?e.clientY:(e.touches&&e.touches[0]?e.touches[0].clientY:rect.top+rect.height/2))-rect.top;
-    const burst=Array.from({length:count},(_,i)=>({id:Date.now()+Math.random()+i,x:cx,y:cy,angle:(i/count)*360+Math.random()*30,dist:40+Math.random()*70,size:8+Math.random()*11,color:['#ffdd57','#ff9eb5','#b6d9ff','#ffe0ee','#fff4a0','#ffb6d9','#c8f0a0'][i%7],dur:0.6+Math.random()*0.5}));
-    setTrailStars(s=>[...s.slice(-120),...burst]);
+    const burst=Array.from({length:count},(_,i)=>({id:Date.now()+Math.random()+i,x:cx,y:cy,angle:(i/count)*360+Math.random()*30,dist:40+Math.random()*70,size:8+Math.random()*11,color:['#ffdd57','#ff9eb5','#b6d9ff','#ffe0ee','#fff4a0','#ffb6d9','#c8f0a0'][i%7],dur:0.6+Math.random()*0.5,sr:(-90+Math.random()*180)+"deg"}));
+    setTrailStars(s=>[...s.slice(-80),...burst]);
     setTimeout(()=>setTrailStars(s=>s.filter(st=>!burst.find(n=>n.id===st.id))),1400);
   };
-  const handleMove=(e)=>{const now=Date.now();if(now-lastTrailTime.current<80)return;lastTrailTime.current=now;spawnStars(e,7);};
+  const handleMove=(e)=>{const now=Date.now();if(now-lastTrailTime.current<100)return;lastTrailTime.current=now;spawnStars(e,5);};
 
   return (
     <div ref={sectionRef} onClick={e=>spawnStars(e,14)} onMouseMove={handleMove} onTouchMove={e=>{e.preventDefault();handleMove(e);}} onTouchStart={e=>spawnStars(e,14)}
-      style={{background:"linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)",padding:"80px 20px",position:"relative",overflow:"hidden",cursor:"crosshair",userSelect:"none"}}>
-      <style>{`
-        @keyframes starShoot{0%{transform:translate(0,0) scale(1) rotate(0deg);opacity:1;}100%{transform:translate(var(--sx),var(--sy)) scale(0) rotate(var(--sr));opacity:0;}}
-        @keyframes trailDot{0%{transform:translate(0,0) scale(0);opacity:0;}20%{transform:translate(calc(var(--sx)*0.35),calc(var(--sy)*0.35)) scale(1.1);opacity:1;}100%{transform:translate(var(--sx),var(--sy)) scale(0);opacity:0;}}
-      `}</style>
+      style={{background:"linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)",padding:"80px 20px",position:"relative",overflow:"hidden",cursor:"crosshair",userSelect:"none",touchAction:"pan-y"}}>
       <div style={{position:"absolute",inset:0,pointerEvents:"none"}}>
-        {bgStars.map(s=><div key={s.id} style={{position:"absolute",width:s.size,height:s.size,background:"white",borderRadius:"50%",top:`${s.top}%`,left:`${s.left}%`,animation:`blink ${s.d}s ease-in-out infinite ${s.dl}s`}} />)}
+        {bgStars.map(s=><div key={s.id} style={{position:"absolute",width:s.size,height:s.size,background:"white",borderRadius:"50%",top:`${s.top}%`,left:`${s.left}%`,animation:`blink ${s.d}s ease-in-out infinite ${s.dl}s`,willChange:"opacity"}} />)}
       </div>
       {trailStars.map(s=>{
         const rad=s.angle*Math.PI/180;
         const sx=Math.cos(rad)*s.dist+"px";
         const sy=Math.sin(rad)*s.dist+"px";
-        const sr=(-90+Math.random()*180)+"deg";
         return(
-          <div key={s.id} style={{position:"absolute",left:s.x,top:s.y,pointerEvents:"none",zIndex:20}}>
-            <div style={{position:"absolute",width:s.size,height:s.size,marginLeft:-s.size/2,marginTop:-s.size/2,background:s.color,clipPath:"polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)",filter:`drop-shadow(0 0 5px ${s.color})`,"--sx":sx,"--sy":sy,"--sr":sr,animation:`starShoot ${s.dur}s ease-out forwards`}} />
+          <div key={s.id} style={{position:"absolute",left:s.x,top:s.y,pointerEvents:"none",zIndex:20,willChange:"transform,opacity"}}>
+            <div style={{position:"absolute",width:s.size,height:s.size,marginLeft:-s.size/2,marginTop:-s.size/2,background:s.color,clipPath:"polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)",boxShadow:`0 0 4px ${s.color}`,"--sx":sx,"--sy":sy,"--sr":s.sr,animation:`starShoot ${s.dur}s ease-out forwards`}} />
             <div style={{position:"absolute",width:s.size*0.4,height:s.size*0.4,marginLeft:-s.size*0.2,marginTop:-s.size*0.2,borderRadius:"50%",background:s.color,opacity:0.55,"--sx":`calc(${sx} * 0.6)`,"--sy":`calc(${sy} * 0.6)`,animation:`trailDot ${s.dur*0.75}s ease-out forwards`}} />
           </div>
         );
@@ -1921,37 +1926,653 @@ function VideoPlayer({videoId}) {
   );
 }
 
-function VideoSlider() {
-  const VIDEOS = [
-    {id:"JZtnlFuytrA", thumb:"https://img.youtube.com/vi/JZtnlFuytrA/maxresdefault.jpg", isShort:false},
-    {id:"d-prAggDs9Q", thumb:"https://img.youtube.com/vi/d-prAggDs9Q/maxresdefault.jpg", isShort:true},
-    {id:"qylISCGkX1Y", thumb:"https://img.youtube.com/vi/qylISCGkX1Y/hqdefault.jpg", isShort:true},
-    {id:"IqByc5c9OwI", thumb:"https://img.youtube.com/vi/IqByc5c9OwI/maxresdefault.jpg", isShort:true},
-  ];
-  const [idx,setIdx]=useState(0);
-  const [open,setOpen]=useState(false);
-  const dragStart=useRef(null);
-  const prev=()=>setIdx(i=>(i-1+VIDEOS.length)%VIDEOS.length);
-  const next=()=>setIdx(i=>(i+1)%VIDEOS.length);
-  const onTouchStart=e=>{dragStart.current=e.touches[0].clientX;};
-  const onTouchEnd=e=>{
-    if(dragStart.current===null)return;
-    const dx=e.changedTouches[0].clientX-dragStart.current;
-    if(Math.abs(dx)>40){dx<0?next():prev();}
-    dragStart.current=null;
+function ScratchCardSection() {
+  const BUCKET = "memories";
+  const SCRATCH_CACHE_KEY = "hana_scratch_cache";
+  const SCRATCH_CACHE_TTL = 10 * 60 * 1000;
+
+  const shuffle = arr => {
+    const a = [...arr];
+    for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+    return a;
   };
-  const v=VIDEOS[idx];
+
+  const readCache = () => {
+    try {
+      const raw = localStorage.getItem(SCRATCH_CACHE_KEY);
+      if(!raw) return null;
+      const {urls, ts} = JSON.parse(raw);
+      if(Date.now() - ts < SCRATCH_CACHE_TTL && urls?.length > 0) return urls;
+    } catch(e){}
+    return null;
+  };
+  const writeCache = (urls) => {
+    try { localStorage.setItem(SCRATCH_CACHE_KEY, JSON.stringify({urls, ts:Date.now()})); } catch(e){}
+  };
+  const clearScratchCache = () => {
+    try { localStorage.removeItem(SCRATCH_CACHE_KEY); } catch(e){}
+  };
+
+  const cached = readCache();
+  const [photos, setPhotos] = useState(cached || []);
+  const [photosLoading, setPhotosLoading] = useState(!cached);
+
+  // Query scratch_photos table — dead simple, 100% reliable
+  const loadScratchPhotos = useCallback(async (bustCache=false) => {
+    if(!bustCache){
+      const hit = readCache();
+      if(hit){ setPhotos(hit); setPhotosLoading(false); preloadImages(hit); return; }
+    }
+    setPhotosLoading(true);
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/scratch_photos?select=url&order=id.asc`, {
+        headers: sbHeaders,
+      });
+      if(r.ok){
+        const data = await r.json();
+        if(Array.isArray(data) && data.length > 0){
+          const urls = data.map(d => d.url);
+          writeCache(urls);
+          setPhotos(urls);
+          preloadImages(urls);
+        }
+      }
+    } catch(e){}
+    setPhotosLoading(false);
+  }, []);
+
+  const preloadImages = (urls) => {
+    urls.forEach(u => { const img = new Image(); img.src = u; });
+  };
+
+  useEffect(() => {
+    clearScratchCache();
+    loadScratchPhotos(true);
+  }, []);
+
+  const [round, setRound] = useState(null);
+  const [pos, setPos] = useState(0);
+  const [revealed, setRevealed] = useState(false);
+  const [allDone, setAllDone] = useState(false);
+  const [scratching, setScratching] = useState(false);
+  const [percent, setPercent] = useState(0);
+  const [photoReady, setPhotoReady] = useState(false);
+  const canvasRef = useRef(null);
+  const isDrawing = useRef(false);
+  const hasStarted = useRef(false);
+  const lastPos = useRef(null);
+  const checkInterval = useRef(0);
+  const revealLock = useRef(false);
+
+  useEffect(() => {
+    if(photos.length > 0){
+      setRound(shuffle(photos.map((_,i)=>i)));
+      setPos(0); setRevealed(false); setAllDone(false);
+    }
+  }, [photos]);
+
+  const currentPhoto = round ? photos[round[pos % round.length]] : null;
+
+  const photoReadyTimer = useRef(null);
+  const cardKey = `${pos}-${round ? round[pos % (round.length||1)] : 0}`;
+
+  useEffect(() => {
+    clearTimeout(photoReadyTimer.current);
+    setPhotoReady(false);
+    // Always unlock after 1.5s max — no matter what
+    photoReadyTimer.current = setTimeout(() => setPhotoReady(true), 1500);
+    // Also unlock immediately if image already cached
+    if(currentPhoto) {
+      const img = new Image();
+      img.onload = () => { clearTimeout(photoReadyTimer.current); setPhotoReady(true); };
+      img.onerror = () => { clearTimeout(photoReadyTimer.current); setPhotoReady(true); };
+      img.src = currentPhoto;
+    }
+    return () => clearTimeout(photoReadyTimer.current);
+  }, [cardKey]);
+
+  const initCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    if(!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const W = canvas.width, H = canvas.height;
+    ctx.globalCompositeOperation = "source-over";
+    ctx.globalAlpha = 1;
+    ctx.clearRect(0,0,W,H);
+
+    // ── Sky ──
+    const sky = ctx.createLinearGradient(0,0,0,H*0.72);
+    sky.addColorStop(0,"#b8d4f0");
+    sky.addColorStop(0.4,"#d8eaf8");
+    sky.addColorStop(0.75,"#fde8c8");
+    sky.addColorStop(1,"#f9c5a0");
+    ctx.fillStyle=sky; ctx.fillRect(0,0,W,H*0.72);
+
+    // ── Sun ──
+    const sunG = ctx.createRadialGradient(W*0.78,H*0.14,0,W*0.78,H*0.14,W*0.13);
+    sunG.addColorStop(0,"rgba(255,240,160,1)");
+    sunG.addColorStop(0.5,"rgba(255,210,100,0.7)");
+    sunG.addColorStop(1,"rgba(255,200,80,0)");
+    ctx.fillStyle=sunG; ctx.fillRect(0,0,W,H*0.5);
+    ctx.fillStyle="#fff7b0"; ctx.globalAlpha=0.95;
+    ctx.beginPath(); ctx.arc(W*0.78,H*0.14,W*0.07,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
+
+    // ── Clouds ──
+    const cloud = (cx,cy,w,h,alpha) => {
+      ctx.save(); ctx.globalAlpha=alpha; ctx.fillStyle="#fff";
+      const rx=w/2, ry=h/2;
+      [[-rx*0.5,-ry*0.1,rx*0.55,ry*0.7],[0,-ry*0.5,rx*0.65,ry*0.8],[rx*0.5,-ry*0.1,rx*0.5,ry*0.65],[0,ry*0.15,rx*0.9,ry*0.55]].forEach(([dx,dy,rw,rh])=>{
+        ctx.beginPath(); ctx.ellipse(cx+dx,cy+dy,rw,rh,0,0,Math.PI*2); ctx.fill();
+      });
+      ctx.restore();
+    };
+    cloud(W*0.12,H*0.1, W*0.28,H*0.1, 0.92);
+    cloud(W*0.42,H*0.07, W*0.22,H*0.08, 0.80);
+    cloud(W*0.72,H*0.28, W*0.18,H*0.07, 0.70);
+    cloud(W*0.88,H*0.12, W*0.16,H*0.07, 0.60);
+
+    // ── Birds (V-shape silhouettes) ──
+    const bird = (x,y,s) => {
+      ctx.save(); ctx.strokeStyle="rgba(50,35,20,0.75)";
+      ctx.lineWidth=s*0.22; ctx.lineCap="round";
+      ctx.beginPath(); ctx.moveTo(x,y);
+      ctx.quadraticCurveTo(x-s*0.55,y-s*0.5,x-s*1.1,y+s*0.1); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x,y);
+      ctx.quadraticCurveTo(x+s*0.55,y-s*0.5,x+s*1.1,y+s*0.1); ctx.stroke();
+      ctx.restore();
+    };
+    [[W*0.15,H*0.08,8],[W*0.22,H*0.05,6],[W*0.29,H*0.09,7],[W*0.19,H*0.14,5],[W*0.08,H*0.12,6],[W*0.35,H*0.06,5],[W*0.55,H*0.1,5],[W*0.61,H*0.07,4]].forEach(([x,y,s])=>bird(x,y,s));
+
+    // ── Rolling hills ──
+    const hill = (yBase,color,cp1x,cp1y,cp2x,cp2y) => {
+      ctx.fillStyle=color;
+      ctx.beginPath(); ctx.moveTo(0,H);
+      ctx.lineTo(0,yBase);
+      ctx.bezierCurveTo(cp1x,cp1y,cp2x,cp2y,W,yBase+H*0.04);
+      ctx.lineTo(W,H); ctx.closePath(); ctx.fill();
+    };
+    hill(H*0.6,"#c8e6a0",W*0.2,H*0.5,W*0.7,H*0.56);
+    hill(H*0.68,"#a8d880",W*0.25,H*0.6,W*0.65,H*0.64);
+    hill(H*0.76,"#88c860",W*0.3,H*0.68,W*0.7,H*0.72);
+    // Ground
+    ctx.fillStyle="#6aae48"; ctx.fillRect(0,H*0.85,W,H*0.15);
+
+    // ── Flowers ──
+    const flower = (x,y,size,pc,cc,n=5) => {
+      ctx.save();
+      // Stem
+      ctx.strokeStyle="#4a7a32"; ctx.lineWidth=size*0.14; ctx.lineCap="round";
+      ctx.beginPath(); ctx.moveTo(x,y+size); ctx.lineTo(x,y); ctx.stroke();
+      // Petals
+      for(let i=0;i<n;i++){
+        const a=(i/n)*Math.PI*2;
+        ctx.fillStyle=pc; ctx.globalAlpha=0.88;
+        ctx.beginPath();
+        ctx.ellipse(x+Math.cos(a)*size*0.5,y+Math.sin(a)*size*0.5,size*0.3,size*0.17,a,0,Math.PI*2);
+        ctx.fill();
+      }
+      // Centre
+      ctx.globalAlpha=1; ctx.fillStyle=cc;
+      ctx.beginPath(); ctx.arc(x,y,size*0.22,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle="rgba(255,255,255,0.4)";
+      ctx.beginPath(); ctx.arc(x-size*0.07,y-size*0.08,size*0.09,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    };
+
+    // Background scattered flowers
+    [[W*0.07,H*0.66,11,"#ffb3c6","#e84393"],[W*0.17,H*0.72,9,"#ffd6a5","#f0932b"],
+     [W*0.27,H*0.69,10,"#fff3a3","#f9ca24"],[W*0.42,H*0.74,8,"#c3b1e1","#8e44ad"],
+     [W*0.68,H*0.7,10,"#a8e6cf","#00b894"],[W*0.8,H*0.67,9,"#ffb3c6","#e84393"],
+     [W*0.9,H*0.73,8,"#ffd6a5","#f0932b"],[W*0.52,H*0.78,9,"#fff3a3","#f9ca24"],
+     [W*0.12,H*0.82,8,"#c3b1e1","#8e44ad"],[W*0.35,H*0.8,9,"#ffb3c6","#e84393"],
+     [W*0.62,H*0.79,8,"#a8e6cf","#00b894"],[W*0.78,H*0.82,7,"#fff3a3","#f9ca24"],
+    ].forEach(([x,y,s,p,c])=>flower(x,y,s,p,c,5));
+
+    // Hero flowers centre-foreground
+    flower(W*0.5,H*0.56,W*0.072,"#ffb3c6","#e84393",6);
+    flower(W*0.36,H*0.62,W*0.05,"#fff3a3","#f9ca24",5);
+    flower(W*0.64,H*0.61,W*0.048,"#c3b1e1","#8e44ad",5);
+
+    // ── Sparkles ──
+    [[W*0.32,H*0.2],[W*0.5,H*0.15],[W*0.66,H*0.22],[W*0.82,H*0.38]].forEach(([sx,sy])=>{
+      [8,0].forEach((len,i)=>{
+        if(len){
+          ctx.save(); ctx.strokeStyle="rgba(255,255,200,0.8)"; ctx.lineWidth=1.2;
+          [[1,0],[-1,0],[0,1],[0,-1]].forEach(([dx,dy])=>{
+            ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(sx+dx*len,sy+dy*len); ctx.stroke();
+          });
+          ctx.restore();
+        } else {
+          ctx.fillStyle="rgba(255,255,200,0.9)";
+          ctx.globalAlpha=0.85;
+          ctx.beginPath(); ctx.arc(sx,sy,1.8,0,Math.PI*2); ctx.fill();
+          ctx.globalAlpha=1;
+        }
+      });
+    });
+
+    hasStarted.current = false;
+    revealLock.current = false;
+  }, []);
+
+  useEffect(() => {
+    isDrawing.current = false;
+    lastPos.current = null;
+    setRevealed(false);
+    setScratching(false);
+    setPercent(0);
+    revealLock.current = false;
+    initCanvas();
+  }, [pos, round, initCanvas]);
+
+  const doReveal = useCallback(() => {
+    if(revealLock.current) return;
+    revealLock.current = true;
+    const canvas = canvasRef.current;
+    if(!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const snapshot = ctx.getImageData(0,0,canvas.width,canvas.height);
+    let opacity = 1;
+    const fade = () => {
+      opacity -= 0.08;
+      if(opacity <= 0){
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        if(pos >= photos.length - 1) setAllDone(true);
+        setRevealed(true);
+        return;
+      }
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = opacity;
+      ctx.putImageData(snapshot,0,0);
+      ctx.globalAlpha = 1;
+      requestAnimationFrame(fade);
+    };
+    requestAnimationFrame(fade);
+  }, [pos]);
+
+  const handleNextTap = () => {
+    if(!revealed) return;
+    if(allDone){ startOver(); return; }
+    setPos(p => p+1);
+  };
+
+  // Hidden admin — title tapped 5 times
+  const titleTaps = useRef(0);
+  const titleTapTimer = useRef(null);
+  const [adminOpen, setAdminOpen] = useState(false);
+  const [adminPwd, setAdminPwd] = useState("");
+  const [adminAuthed, setAdminAuthed] = useState(false);
+  const [adminUploading, setAdminUploading] = useState(false);
+  const [adminDeleting, setAdminDeleting] = useState(null);
+
+  const handleTitleTap = () => {
+    titleTaps.current += 1;
+    clearTimeout(titleTapTimer.current);
+    titleTapTimer.current = setTimeout(() => { titleTaps.current = 0; }, 1500);
+    if(titleTaps.current >= 5){ titleTaps.current = 0; setAdminOpen(true); }
+  };
+
+  const adminUpload = async (e) => {
+    const file = e.target.files[0]; if(!file) return;
+    setAdminUploading(true);
+    try {
+      // Resize to max 1200px before upload — same as memories section
+      const compressed = await new Promise((resolve, reject) => {
+        const img = new Image();
+        const objUrl = URL.createObjectURL(file);
+        img.onload = () => {
+          try {
+            const MAX = 1200;
+            let w = img.width, h = img.height;
+            if(w > MAX || h > MAX){ const ratio = Math.min(MAX/w, MAX/h); w = Math.round(w*ratio); h = Math.round(h*ratio); }
+            const canvas = document.createElement("canvas");
+            canvas.width = w; canvas.height = h;
+            canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+            canvas.toBlob(blob => { URL.revokeObjectURL(objUrl); if(blob) resolve(blob); else reject(new Error("toBlob failed")); }, "image/jpeg", 0.82);
+          } catch(err) { URL.revokeObjectURL(objUrl); reject(err); }
+        };
+        img.onerror = () => { URL.revokeObjectURL(objUrl); resolve(file); };
+        img.src = objUrl;
+      });
+      const fileName = `scratch_${Date.now()}.jpg`;
+      // 1. Upload resized file to storage
+      const r = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${fileName}`, {
+        method:"POST",
+        headers:{"apikey":SUPABASE_ANON,"Authorization":`Bearer ${SUPABASE_ANON}`,"Content-Type":"image/jpeg","x-upsert":"true"},
+        body: compressed,
+      });
+      if(!r.ok){ alert("Upload failed: " + r.status); setAdminUploading(false); return; }
+      // 2. Save URL to scratch_photos table
+      const url = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${fileName}`;
+      const r2 = await fetch(`${SUPABASE_URL}/rest/v1/scratch_photos`, {
+        method:"POST",
+        headers:{...sbHeaders,"Content-Type":"application/json","Prefer":"return=minimal"},
+        body: JSON.stringify({url}),
+      });
+      if(r2.ok){
+        clearScratchCache();
+        await loadScratchPhotos(true);
+        alert("Uploaded! ✨");
+      } else { alert("Saved to storage but table insert failed: " + r2.status); }
+    } catch(err){ alert("Error: " + err.message); }
+    setAdminUploading(false);
+    e.target.value = "";
+  };
+
+  const adminDelete = async (url) => {
+    const fileName = decodeURIComponent(url.split(`/public/${BUCKET}/`)[1]);
+    setAdminDeleting(url);
+    try {
+      // 1. Delete from storage
+      await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${fileName}`, {
+        method:"DELETE",
+        headers:{"apikey":SUPABASE_ANON,"Authorization":`Bearer ${SUPABASE_ANON}`},
+      });
+      // 2. Delete from table
+      const r2 = await fetch(`${SUPABASE_URL}/rest/v1/scratch_photos?url=eq.${encodeURIComponent(url)}`, {
+        method:"DELETE",
+        headers:{...sbHeaders},
+      });
+      if(r2.ok){ clearScratchCache(); await loadScratchPhotos(true); alert("Deleted!"); }
+      else alert("Delete failed: " + r2.status);
+    } catch(err){ alert("Error: " + err.message); }
+    setAdminDeleting(null);
+  };
+
+  const scratch = useCallback((e) => {
+    e.preventDefault();
+    if(!isDrawing.current || revealLock.current) return;
+    const canvas = canvasRef.current;
+    if(!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width/rect.width;
+    const scaleY = canvas.height/rect.height;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const cur = {x:(clientX-rect.left)*scaleX, y:(clientY-rect.top)*scaleY};
+
+    if(!hasStarted.current){ hasStarted.current=true; setScratching(true); }
+
+    ctx.globalCompositeOperation = "destination-out";
+    ctx.globalAlpha = 1;
+    ctx.lineWidth = 60;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    if(lastPos.current){
+      ctx.beginPath();
+      ctx.moveTo(lastPos.current.x, lastPos.current.y);
+      ctx.lineTo(cur.x, cur.y);
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.arc(cur.x,cur.y,34,0,Math.PI*2);
+    ctx.fill();
+    lastPos.current = cur;
+
+    checkInterval.current = (checkInterval.current+1)%6;
+    if(checkInterval.current !== 0) return;
+
+    const imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
+    let cleared=0, total=0;
+    for(let i=3;i<imageData.data.length;i+=16){
+      if(imageData.data[i]===0) cleared++;
+      total++;
+    }
+    const pct = Math.round((cleared/total)*100);
+    setPercent(pct);
+    if(pct > 30) doReveal();
+  }, [doReveal]);
+
+  const startOver = () => {
+    setRound(shuffle(photos.map((_,i)=>i)));
+    setPos(0);
+    setAllDone(false);
+    setRevealed(false);
+    setScratching(false);
+    setPercent(0);
+  };
+
+  return (
+    <div className="section-gpu" style={{background:"linear-gradient(180deg,#0a0a1a 0%,#1a0a2e 50%,#0a0a1a 100%)",padding:"70px 20px",textAlign:"center",position:"relative",overflow:"hidden"}}>
+      <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse at center,rgba(212,168,67,0.06) 0%,transparent 70%)",pointerEvents:"none"}}/>
+      <div style={{display:"none"}}>{photos.map(u=><img key={u} src={u} alt=""/>)}</div>
+
+      <div style={{position:"relative",zIndex:1,maxWidth:420,margin:"0 auto"}}>
+        {/* Title — tap 5 times to open admin */}
+        <p onClick={handleTitleTap} style={{fontSize:"0.7rem",letterSpacing:"0.28em",textTransform:"uppercase",color:"#d4a843",marginBottom:10,fontFamily:"'Playfair Display',serif",cursor:"default",userSelect:"none"}}>Little notes for you</p>
+        <h2 style={{fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:"clamp(1.4rem,4vw,2rem)",color:"white",marginBottom:8,textShadow:"0 0 30px rgba(212,168,67,0.3)"}}>Scratch to reveal 🌸</h2>
+        <p style={{color:"rgba(255,255,255,0.4)",fontSize:"0.78rem",marginBottom:32,fontFamily:"'Playfair Display',serif",fontStyle:"italic"}}>
+          {photosLoading ? "✦" : allDone ? "All revealed 💛" : photos.length > 0 ? `Card ${pos+1} of ${photos.length}` : ""}
+        </p>
+
+        {/* Card */}
+        {photosLoading ? (
+          <div style={{maxWidth:320,margin:"0 auto",borderRadius:20,background:"rgba(255,255,255,0.04)",height:320,display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <p style={{color:"rgba(255,255,255,0.3)",fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:"0.9rem"}}>Loading...</p>
+          </div>
+        ) : photos.length === 0 ? (
+          <div style={{maxWidth:320,margin:"0 auto",borderRadius:20,background:"rgba(255,255,255,0.04)",height:320,display:"flex",alignItems:"center",justifyContent:"center",border:"1.5px dashed rgba(255,255,255,0.1)"}}>
+            <p style={{color:"rgba(255,255,255,0.25)",fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:"0.9rem"}}>No cards yet 🌸</p>
+          </div>
+        ) : currentPhoto && (
+        <div
+          key={cardKey}
+          onClick={handleNextTap}
+          style={{position:"relative",maxWidth:320,margin:"0 auto",borderRadius:20,overflow:"hidden",boxShadow:"0 24px 60px rgba(0,0,0,0.6),0 0 40px rgba(212,168,67,0.15)",cursor:revealed?"pointer":"crosshair",userSelect:"none",WebkitUserSelect:"none"}}
+        >
+          <img
+            src={currentPhoto}
+            alt="surprise"
+            style={{width:"100%",display:"block",borderRadius:20}}
+          />
+          <canvas
+            ref={canvasRef}
+            width={640} height={640}
+            style={{position:"absolute",inset:0,width:"100%",height:"100%",borderRadius:20,touchAction:"none",pointerEvents:revealed?"none":"auto",willChange:"opacity",transform:"translateZ(0)"}}
+            onMouseDown={e=>{ if(!photoReady) return; isDrawing.current=true;lastPos.current=null;scratch(e);}}
+            onMouseMove={e=>{ if(!photoReady) return; scratch(e);}}
+            onMouseUp={()=>{isDrawing.current=false;lastPos.current=null;}}
+            onMouseLeave={()=>{isDrawing.current=false;lastPos.current=null;}}
+            onTouchStart={e=>{ if(!photoReady) return; isDrawing.current=true;lastPos.current=null;scratch(e);}}
+            onTouchMove={e=>{ if(!photoReady) return; scratch(e);}}
+            onTouchEnd={()=>{isDrawing.current=false;lastPos.current=null;}}
+          />
+          {/* Loading shimmer over canvas until photo is ready */}
+          {!photoReady && !revealed && (
+            <div style={{position:"absolute",inset:0,borderRadius:20,background:"linear-gradient(110deg,rgba(20,10,40,0.7) 30%,rgba(212,168,67,0.12) 50%,rgba(20,10,40,0.7) 70%)",backgroundSize:"200% 100%",animation:"skeletonSlide 1.4s ease infinite",pointerEvents:"none",display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <p style={{color:"rgba(255,255,255,0.35)",fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:"0.85rem"}}>Loading...</p>
+            </div>
+          )}
+          {/* Tap to next hint */}
+          {revealed && (
+            <div style={{position:"absolute",inset:0,display:"flex",alignItems:"flex-end",justifyContent:"center",borderRadius:20,background:"linear-gradient(transparent 55%,rgba(0,0,0,0.6))",animation:"fadeIn 0.5s ease"}}>
+              <p style={{color:"white",fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:"0.85rem",margin:"0 0 18px",textShadow:"0 1px 4px rgba(0,0,0,0.8)"}}>
+                {allDone ? "Tap to start over ✨" : "Tap to reveal next 🌸"}
+              </p>
+            </div>
+          )}
+        </div>
+        )}
+
+        {/* Progress bar */}
+        {scratching && !revealed && (
+          <div style={{marginTop:18,maxWidth:320,margin:"18px auto 0"}}>
+            <div style={{height:4,background:"rgba(255,255,255,0.1)",borderRadius:4,overflow:"hidden"}}>
+              <div style={{height:"100%",width:`${percent}%`,background:"linear-gradient(90deg,#d4a843,#f0c060)",borderRadius:4,transition:"width 0.1s ease"}}/>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Hidden admin modal */}
+      {adminOpen && (
+        <div style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div style={{background:"#1a1a2e",borderRadius:16,padding:28,width:"100%",maxWidth:360,border:"1px solid rgba(212,168,67,0.3)",maxHeight:"85vh",overflowY:"auto"}}>
+            <p style={{color:"#d4a843",fontFamily:"'Playfair Display',serif",fontSize:"1rem",marginBottom:16,textAlign:"center"}}>🔒 Admin Panel</p>
+            {!adminAuthed ? (
+              <>
+                <input
+                  type="password" placeholder="Password"
+                  value={adminPwd} onChange={e=>setAdminPwd(e.target.value)}
+                  onKeyDown={e=>{if(e.key==="Enter"){ if(adminPwd==="Hana") setAdminAuthed(true); else alert("Wrong password"); }}}
+                  style={{width:"100%",padding:"10px 14px",borderRadius:10,border:"1px solid rgba(212,168,67,0.4)",background:"rgba(255,255,255,0.07)",color:"white",fontFamily:"'Playfair Display',serif",fontSize:"0.9rem",boxSizing:"border-box",marginBottom:12}}
+                  autoFocus
+                />
+                <div style={{display:"flex",gap:10}}>
+                  <button onClick={()=>{ if(adminPwd==="Hana") setAdminAuthed(true); else alert("Wrong password"); }} style={{flex:1,padding:"10px",borderRadius:10,background:"#d4a843",border:"none",color:"#1a0a2e",fontWeight:600,cursor:"pointer",fontFamily:"'Playfair Display',serif"}}>Enter</button>
+                  <button onClick={()=>{setAdminOpen(false);setAdminPwd("");}} style={{flex:1,padding:"10px",borderRadius:10,background:"rgba(255,255,255,0.08)",border:"none",color:"white",cursor:"pointer",fontFamily:"'Playfair Display',serif"}}>Cancel</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p style={{color:"rgba(255,255,255,0.6)",fontSize:"0.78rem",marginBottom:14,fontFamily:"'Playfair Display',serif"}}>Current scratch card images ({photos.length}):</p>
+                {photos.map((url,i)=>(
+                  <div key={i} style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                    <img src={url} alt="" style={{width:52,height:52,borderRadius:8,objectFit:"cover"}}/>
+                    <span style={{color:"rgba(255,255,255,0.5)",fontSize:"0.7rem",flex:1,wordBreak:"break-all",fontFamily:"monospace"}}>{url.split("/").pop()}</span>
+                    <button onClick={()=>adminDelete(url)} disabled={adminDeleting===url} style={{padding:"6px 12px",borderRadius:8,background:"#c0392b",border:"none",color:"white",fontSize:"0.75rem",cursor:"pointer"}}>
+                      {adminDeleting===url?"...":"Delete"}
+                    </button>
+                  </div>
+                ))}
+                <label style={{display:"block",marginTop:16,padding:"10px",borderRadius:10,background:"rgba(212,168,67,0.15)",border:"1.5px dashed rgba(212,168,67,0.5)",color:"#d4a843",fontSize:"0.85rem",cursor:"pointer",fontFamily:"'Playfair Display',serif",textAlign:"center"}}>
+                  {adminUploading ? "Uploading..." : "+ Upload new image"}
+                  <input type="file" accept="image/*" style={{display:"none"}} onChange={adminUpload} disabled={adminUploading}/>
+                </label>
+                <button onClick={()=>{setAdminOpen(false);setAdminAuthed(false);setAdminPwd("");}} style={{marginTop:12,width:"100%",padding:"10px",borderRadius:10,background:"rgba(255,255,255,0.07)",border:"none",color:"rgba(255,255,255,0.5)",cursor:"pointer",fontFamily:"'Playfair Display',serif"}}>Close</button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+
+function VideoSlider() {
+  const DEFAULT_VIDEOS = [
+    {id:"JZtnlFuytrA", isShort:false},
+    {id:"d-prAggDs9Q", isShort:true},
+    {id:"qylISCGkX1Y", isShort:true},
+    {id:"IqByc5c9OwI", isShort:true},
+  ];
+
+  const extractId = (input) => {
+    // Handle full URLs: youtube.com/watch?v=ID, youtu.be/ID, youtube.com/shorts/ID
+    try {
+      const url = new URL(input);
+      if(url.searchParams.get("v")) return url.searchParams.get("v");
+      const parts = url.pathname.split("/").filter(Boolean);
+      return parts[parts.length-1];
+    } catch(e) {
+      // Plain ID
+      return input.trim();
+    }
+  };
+
+  const [videos, setVideos] = useState(DEFAULT_VIDEOS);
+  const [idx, setIdx] = useState(0);
+  const [open, setOpen] = useState(false);
+  const dragStart = useRef(null);
+
+  // Admin state
+  const titleClicks = useRef(0);
+  const titleTimer = useRef(null);
+  const [adminOpen, setAdminOpen] = useState(false);
+  const [adminAuthed, setAdminAuthed] = useState(false);
+  const [adminPwd, setAdminPwd] = useState("");
+  const [newUrl, setNewUrl] = useState("");
+  const [newIsShort, setNewIsShort] = useState(false);
+  const [adminSaving, setAdminSaving] = useState(false);
+  const [adminDeleting, setAdminDeleting] = useState(null);
+
+  const loadVideos = useCallback(async () => {
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/video_links?select=*&order=id.asc`, {headers: sbHeaders});
+      if(r.ok){
+        const data = await r.json();
+        if(Array.isArray(data) && data.length > 0){
+          setVideos(data.map(d=>({id:d.video_id, isShort:d.is_short, dbId:d.id})));
+        }
+      }
+    } catch(e){}
+  }, []);
+
+  useEffect(() => { loadVideos(); }, [loadVideos]);
+
+  // Disguise: triple-click "For you 🌸" heading
+  const handleTitleClick = () => {
+    titleClicks.current += 1;
+    clearTimeout(titleTimer.current);
+    titleTimer.current = setTimeout(() => { titleClicks.current = 0; }, 800);
+    if(titleClicks.current >= 3){ titleClicks.current = 0; setAdminOpen(true); }
+  };
+
+  const adminAdd = async () => {
+    if(!newUrl.trim()) return;
+    setAdminSaving(true);
+    const videoId = extractId(newUrl);
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/video_links`, {
+        method:"POST",
+        headers:{...sbHeaders,"Content-Type":"application/json","Prefer":"return=minimal"},
+        body: JSON.stringify({video_id: videoId, is_short: newIsShort}),
+      });
+      if(r.ok){ setNewUrl(""); await loadVideos(); alert("Added! ✨"); }
+      else alert("Failed: " + r.status);
+    } catch(e){ alert("Error: " + e.message); }
+    setAdminSaving(false);
+  };
+
+  const adminDelete = async (dbId) => {
+    setAdminDeleting(dbId);
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/video_links?id=eq.${dbId}`, {
+        method:"DELETE", headers: sbHeaders,
+      });
+      if(r.ok){ await loadVideos(); alert("Deleted!"); }
+      else alert("Failed: " + r.status);
+    } catch(e){ alert("Error: " + e.message); }
+    setAdminDeleting(null);
+  };
+
+  const prev = () => setIdx(i => (i-1+videos.length)%videos.length);
+  const next = () => setIdx(i => (i+1)%videos.length);
+  const onTouchStart = e => { dragStart.current = e.touches[0].clientX; };
+  const onTouchEnd = e => {
+    if(dragStart.current===null) return;
+    const dx = e.changedTouches[0].clientX - dragStart.current;
+    if(Math.abs(dx)>40){ dx<0?next():prev(); }
+    dragStart.current = null;
+  };
+
+  const v = videos[idx] || videos[0];
+  if(!v) return null;
+
+  const thumb = `https://img.youtube.com/vi/${v.id}/maxresdefault.jpg`;
+
   return (
     <>
+      <p
+        onClick={handleTitleClick}
+        style={{fontSize:"0.7rem",letterSpacing:"0.28em",textTransform:"uppercase",color:"#d4a843",marginBottom:10,fontFamily:"'Playfair Display',serif",cursor:"default",userSelect:"none"}}
+      >A little something</p>
+      <h2
+        style={{fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:"clamp(1.5rem,4vw,2.2rem)",color:"white",marginBottom:28,textShadow:"0 0 30px rgba(255,182,193,0.3)"}}
+      >For you 🌸</h2>
+
       <div style={{position:"relative"}} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-        {/* Thumbnail */}
         <div onClick={()=>setOpen(true)} style={{
           position:"relative",cursor:"pointer",borderRadius:20,overflow:"hidden",
           boxShadow:"0 20px 60px rgba(0,0,0,0.7)",
           aspectRatio:v.isShort?"9/16":"460/409",
           maxWidth:v.isShort?260:380,margin:"0 auto",
         }}>
-          <img loading="lazy" src={v.thumb} alt="thumbnail"
+          <img src={thumb} alt="thumbnail"
             style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}
             onError={e=>{e.target.src=`https://img.youtube.com/vi/${v.id}/hqdefault.jpg`;}}
           />
@@ -1965,53 +2586,68 @@ function VideoSlider() {
             <div style={{width:0,height:0,borderTop:"7px solid transparent",borderBottom:"7px solid transparent",borderLeft:"12px solid rgba(255,255,255,0.85)",marginLeft:3}}/>
           </div>
         </div>
-        {/* Arrows */}
-        <button onClick={prev} style={{
-          position:"absolute",left:-16,top:"50%",transform:"translateY(-50%)",
-          background:"rgba(0,0,0,0.5)",border:"1px solid rgba(255,255,255,0.2)",
-          color:"white",width:34,height:34,borderRadius:"50%",cursor:"pointer",
-          fontSize:"1.1rem",display:"flex",alignItems:"center",justifyContent:"center",
-          backdropFilter:"blur(6px)",zIndex:10,
-        }}>‹</button>
-        <button onClick={next} style={{
-          position:"absolute",right:-16,top:"50%",transform:"translateY(-50%)",
-          background:"rgba(0,0,0,0.5)",border:"1px solid rgba(255,255,255,0.2)",
-          color:"white",width:34,height:34,borderRadius:"50%",cursor:"pointer",
-          fontSize:"1.1rem",display:"flex",alignItems:"center",justifyContent:"center",
-          backdropFilter:"blur(6px)",zIndex:10,
-        }}>›</button>
+        <button onClick={prev} style={{position:"absolute",left:"max(-16px, -4vw)",top:"50%",transform:"translateY(-50%)",background:"rgba(0,0,0,0.5)",border:"1px solid rgba(255,255,255,0.2)",color:"white",width:34,height:34,borderRadius:"50%",fontSize:"1.1rem",display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(6px)",zIndex:10}}>‹</button>
+        <button onClick={next} style={{position:"absolute",right:"max(-16px, -4vw)",top:"50%",transform:"translateY(-50%)",background:"rgba(0,0,0,0.5)",border:"1px solid rgba(255,255,255,0.2)",color:"white",width:34,height:34,borderRadius:"50%",fontSize:"1.1rem",display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(6px)",zIndex:10}}>›</button>
       </div>
-      {/* Dots */}
+
       <div style={{display:"flex",justifyContent:"center",gap:6,marginTop:14}}>
-        {VIDEOS.map((_,i)=>(
-          <div key={i} onClick={()=>setIdx(i)} style={{
-            width:i===idx?18:7,height:7,borderRadius:4,
-            background:i===idx?"#d4a843":"rgba(255,255,255,0.3)",
-            cursor:"pointer",transition:"all 0.3s",
-          }}/>
+        {videos.map((_,i)=>(
+          <div key={i} onClick={()=>setIdx(i)} style={{width:i===idx?18:7,height:7,borderRadius:4,background:i===idx?"#d4a843":"rgba(255,255,255,0.3)",cursor:"pointer",transition:"all 0.3s"}}/>
         ))}
       </div>
+
       {/* Lightbox */}
       {open&&(
-        <div onClick={()=>setOpen(false)} style={{
-          position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,0.92)",
-          display:"flex",alignItems:"center",justifyContent:"center",
-          padding:"20px",animation:"fadeIn 0.2s ease",
-        }}>
+        <div onClick={()=>setOpen(false)} style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,0.92)",display:"flex",alignItems:"center",justifyContent:"center",padding:"20px",animation:"fadeIn 0.2s ease"}}>
           <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:v.isShort?360:700,position:"relative"}}>
-            <button onClick={()=>setOpen(false)} style={{
-              position:"absolute",top:-40,right:0,background:"none",border:"none",
-              color:"rgba(255,255,255,0.6)",fontSize:"1.4rem",cursor:"pointer",padding:"4px 10px",
-            }}>✕</button>
+            <button onClick={()=>setOpen(false)} style={{position:"absolute",top:-40,right:0,background:"none",border:"none",color:"rgba(255,255,255,0.6)",fontSize:"1.4rem",cursor:"pointer",padding:"4px 10px"}}>✕</button>
             <div style={{position:"relative",paddingBottom:v.isShort?"177.78%":"56.25%",borderRadius:16,overflow:"hidden"}}>
-              <iframe
-                src={`https://www.youtube.com/embed/${v.id}?autoplay=1&rel=0&modestbranding=1`}
-                title="video" frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                style={{position:"absolute",inset:0,width:"100%",height:"100%"}}
-              />
+              <iframe src={`https://www.youtube.com/embed/${v.id}?autoplay=1&rel=0&modestbranding=1`} title="video" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{position:"absolute",inset:0,width:"100%",height:"100%"}}/>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hidden admin modal */}
+      {adminOpen&&(
+        <div style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div style={{background:"#1a1a2e",borderRadius:16,padding:28,width:"100%",maxWidth:380,border:"1px solid rgba(212,168,67,0.3)",maxHeight:"85vh",overflowY:"auto"}}>
+            <p style={{color:"#d4a843",fontFamily:"'Playfair Display',serif",fontSize:"1rem",marginBottom:16,textAlign:"center"}}>🔒 Video Admin</p>
+            {!adminAuthed ? (
+              <>
+                <input type="password" placeholder="Password" value={adminPwd}
+                  onChange={e=>setAdminPwd(e.target.value)}
+                  onKeyDown={e=>{if(e.key==="Enter"){if(adminPwd==="Hana")setAdminAuthed(true);else alert("Wrong password");}}}
+                  style={{width:"100%",padding:"10px 14px",borderRadius:10,border:"1px solid rgba(212,168,67,0.4)",background:"rgba(255,255,255,0.07)",color:"white",fontFamily:"'Playfair Display',serif",fontSize:"0.9rem",boxSizing:"border-box",marginBottom:12}} autoFocus/>
+                <div style={{display:"flex",gap:10}}>
+                  <button onClick={()=>{if(adminPwd==="Hana")setAdminAuthed(true);else alert("Wrong password");}} style={{flex:1,padding:"10px",borderRadius:10,background:"#d4a843",border:"none",color:"#1a0a2e",fontWeight:600,fontFamily:"'Playfair Display',serif"}}>Enter</button>
+                  <button onClick={()=>{setAdminOpen(false);setAdminPwd("");}} style={{flex:1,padding:"10px",borderRadius:10,background:"rgba(255,255,255,0.08)",border:"none",color:"white",fontFamily:"'Playfair Display',serif"}}>Cancel</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p style={{color:"rgba(255,255,255,0.5)",fontSize:"0.75rem",marginBottom:12,fontFamily:"'Playfair Display',serif"}}>Current videos ({videos.length}):</p>
+                {videos.map((vid,i)=>(
+                  <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                    <img src={`https://img.youtube.com/vi/${vid.id}/default.jpg`} alt="" style={{width:48,height:36,borderRadius:6,objectFit:"cover"}}/>
+                    <span style={{color:"rgba(255,255,255,0.5)",fontSize:"0.7rem",flex:1,fontFamily:"monospace"}}>{vid.id} {vid.isShort?"(Short)":"(Video)"}</span>
+                    {vid.dbId && <button onClick={()=>adminDelete(vid.dbId)} disabled={adminDeleting===vid.dbId} style={{padding:"4px 10px",borderRadius:8,background:"#c0392b",border:"none",color:"white",fontSize:"0.72rem"}}>{adminDeleting===vid.dbId?"...":"Del"}</button>}
+                  </div>
+                ))}
+                <div style={{marginTop:16,borderTop:"1px solid rgba(255,255,255,0.08)",paddingTop:16}}>
+                  <input value={newUrl} onChange={e=>setNewUrl(e.target.value)} placeholder="YouTube URL or video ID"
+                    style={{width:"100%",padding:"9px 12px",borderRadius:10,border:"1px solid rgba(212,168,67,0.3)",background:"rgba(255,255,255,0.06)",color:"white",fontSize:"0.85rem",boxSizing:"border-box",marginBottom:10,fontFamily:"monospace"}}/>
+                  <label style={{display:"flex",alignItems:"center",gap:8,color:"rgba(255,255,255,0.6)",fontSize:"0.8rem",marginBottom:12,cursor:"pointer",fontFamily:"'Playfair Display',serif"}}>
+                    <input type="checkbox" checked={newIsShort} onChange={e=>setNewIsShort(e.target.checked)} style={{width:16,height:16}}/>
+                    This is a YouTube Short (portrait)
+                  </label>
+                  <button onClick={adminAdd} disabled={adminSaving||!newUrl.trim()} style={{width:"100%",padding:"10px",borderRadius:10,background:"rgba(212,168,67,0.2)",border:"1.5px dashed rgba(212,168,67,0.5)",color:"#d4a843",fontSize:"0.9rem",fontFamily:"'Playfair Display',serif"}}>
+                    {adminSaving?"Adding...":"+ Add video"}
+                  </button>
+                </div>
+                <button onClick={()=>{setAdminOpen(false);setAdminAuthed(false);setAdminPwd("");}} style={{marginTop:10,width:"100%",padding:"9px",borderRadius:10,background:"rgba(255,255,255,0.06)",border:"none",color:"rgba(255,255,255,0.4)",fontFamily:"'Playfair Display',serif"}}>Close</button>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -2067,7 +2703,7 @@ function CommentsSection() {
             <div style={{background:"#fffef5",borderRadius:16,boxShadow:"0 8px 40px rgba(0,0,0,0.12),4px 4px 0 #c9a96e",overflow:"hidden",position:"relative",paddingTop:44}}>
               <div style={{padding:"8px 24px 24px 70px",position:"relative",zIndex:3}}>
                 <p style={{fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:"0.78rem",color:"#c4a98a",marginBottom:8,letterSpacing:"0.08em"}}>your notes, Bushra ❤️</p>
-                <textarea value={text} onChange={e=>setText(e.target.value.slice(0,1000))} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();submit();}}} placeholder={"Write anything on your mind 💚"} rows={8} style={{width:"100%",border:"none",outline:"none",fontFamily:"'Lora',serif",fontSize:"1rem",color:"#2c1810",background:"transparent",resize:"none",lineHeight:1.8}} />
+                <textarea value={text} onChange={e=>setText(e.target.value.slice(0,1000))} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();submit();}}} placeholder={"Write anything on your mind 💚"} rows={8} style={{width:"100%",border:"none",outline:"none",fontFamily:"'Lora',serif",fontSize:"16px",color:"#2c1810",background:"transparent",resize:"none",lineHeight:1.8}} />
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:8,paddingTop:12,borderTop:"1px dashed rgba(212,168,67,0.3)"}}>
                   <span style={{fontSize:"0.78rem",color:"#c4a98a",fontStyle:"italic"}}>{text.length} / 1000</span>
                   <button onClick={submit} disabled={saving||!text.trim()} style={{background:"#5a8c4a",color:"#fef9f0",border:"none",padding:"10px 24px",borderRadius:40,fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:"0.92rem",cursor:"pointer",opacity:saving||!text.trim()?0.45:1}}>{saving?"Saving...":"Leave your words 🍃"}</button>
@@ -2078,7 +2714,7 @@ function CommentsSection() {
         )}
         {name==="Him"&&(
           <div style={{background:"white",borderRadius:16,padding:28,boxShadow:"0 4px 40px rgba(0,0,0,0.07)",border:"1.5px solid rgba(212,168,67,0.2)",marginBottom:40}}>
-            <textarea value={text} onChange={e=>setText(e.target.value.slice(0,1000))} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();submit();}}} placeholder={"💛"} rows={5} style={{width:"100%",border:"none",outline:"none",fontFamily:"'Lora',serif",fontSize:"1rem",color:"#2c1810",background:"transparent",resize:"none",lineHeight:1.8}} />
+            <textarea value={text} onChange={e=>setText(e.target.value.slice(0,1000))} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();submit();}}} placeholder={"💛"} rows={5} style={{width:"100%",border:"none",outline:"none",fontFamily:"'Lora',serif",fontSize:"16px",color:"#2c1810",background:"transparent",resize:"none",lineHeight:1.8}} />
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:16,paddingTop:16,borderTop:"1px solid rgba(212,168,67,0.2)"}}>
               <span style={{fontSize:"0.78rem",color:"#c4a98a",fontStyle:"italic"}}>{text.length} / 1000</span>
               <button onClick={submit} disabled={saving||!text.trim()} style={{background:"#2c1810",color:"#fef9f0",border:"none",padding:"10px 24px",borderRadius:40,fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:"0.92rem",cursor:"pointer",opacity:saving||!text.trim()?0.45:1}}>{saving?"Saving...":"Leave your words ✦"}</button>
@@ -2096,41 +2732,69 @@ function CommentsSection() {
   );
 }
 
+// Memoized so the 60 star divs are never recreated on re-renders
+const chapter3Stars = Array.from({length:60},(_,i)=>({
+  id:i, w:i%5===0?2.5:1.5, op:(0.3+Math.random()*0.5).toFixed(2),
+  top:(Math.random()*100).toFixed(2), left:(Math.random()*100).toFixed(2),
+  dur:(2+Math.random()*3).toFixed(2), dl:(Math.random()*4).toFixed(2),
+}));
+function Chapter3Stars() {
+  return (
+    <div style={{position:"absolute",inset:0,pointerEvents:"none"}}>
+      {chapter3Stars.map(s=>(
+        <div key={s.id} style={{position:"absolute",width:s.w,height:s.w,borderRadius:"50%",background:"white",opacity:s.op,top:`${s.top}%`,left:`${s.left}%`,animation:`blink ${s.dur}s ease-in-out infinite ${s.dl}s`}}/>
+      ))}
+    </div>
+  );
+}
+
 // ═══════════════════════════════════════════════
 //  MAIN APP
 // ═══════════════════════════════════════════════
 
 const globalCss=`
   *{margin:0;padding:0;box-sizing:border-box;}
-  html{scroll-behavior:smooth;}
-  body{font-family:'Lora',serif;background:#fef9f0;color:#2c1810;overflow-x:hidden;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  html{scroll-behavior:smooth;-webkit-tap-highlight-color:transparent;}
+  body{font-family:'Lora',serif;background:#fef9f0;color:#2c1810;overflow-x:hidden;-webkit-font-smoothing:antialiased;text-rendering:optimizeSpeed;overscroll-behavior-y:none;}
   h2{font-family:'Playfair Display',serif;font-size:clamp(1.8rem,4vw,2.8rem);font-style:italic;margin-bottom:24px;color:#2c1810;line-height:1.2;}
   p{font-size:1.03rem;line-height:1.95;color:#6b4c3b;margin-bottom:16px;}
-  img{content-visibility:auto;}
+  img{max-width:100%;height:auto;}
+  button{-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+  input,textarea{-webkit-tap-highlight-color:transparent;}
+  .section-gpu{contain:layout style;transform:translateZ(0);}
+  .section-offscreen{content-visibility:auto;contain-intrinsic-size:0 600px;}
   @keyframes sunPulse{0%,100%{box-shadow:0 0 60px 20px rgba(249,216,72,0.4);}50%{box-shadow:0 0 80px 30px rgba(249,216,72,0.6);}}
-  @keyframes drift{from{transform:translateX(0);}to{transform:translateX(110vw);}}
+  @keyframes drift{from{transform:translate3d(0,0,0);}to{transform:translate3d(110vw,0,0);}}
   @keyframes blink{0%,100%{opacity:0.2;}50%{opacity:1;}}
-  @keyframes catFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
+  @keyframes catFloat{0%,100%{transform:translate3d(0,0,0);}50%{transform:translate3d(0,-6px,0);}}
   @keyframes catBlink{0%,90%,100%{height:8px;}93%,97%{height:1px;}}
   @keyframes tailWag{0%,100%{transform:rotate(-15deg);}50%{transform:rotate(15deg);}}
-  @keyframes totoroBob{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
-  @keyframes fadeUp{from{opacity:0;transform:translateY(30px);}to{opacity:1;transform:translateY(0);}}
-  @keyframes bounce{0%,100%{transform:translateX(-50%) translateY(0);}50%{transform:translateX(-50%) translateY(8px);}}
-  @keyframes fly{0%{transform:translate(0,0);opacity:0;}25%{opacity:1;}75%{opacity:0.8;}100%{transform:translate(30px,-40px);opacity:0;}}
-  @keyframes wave1{0%,100%{transform:translateX(0) scaleY(1);}50%{transform:translateX(-18px) scaleY(1.12);}}
+  @keyframes totoroBob{0%,100%{transform:translate3d(0,0,0);}50%{transform:translate3d(0,-8px,0);}}
+  @keyframes fadeUp{from{opacity:0;transform:translate3d(0,30px,0);}to{opacity:1;transform:translate3d(0,0,0);}}
+  @keyframes bounce{0%,100%{transform:translate3d(-50%,0,0);}50%{transform:translate3d(-50%,8px,0);}}
+  @keyframes fly{0%{transform:translate3d(0,0,0);opacity:0;}25%{opacity:1;}75%{opacity:0.8;}100%{transform:translate3d(30px,-40px,0);opacity:0;}}
+  @keyframes wave1{0%,100%{transform:translate3d(0,0,0) scaleY(1);}50%{transform:translate3d(-18px,0,0) scaleY(1.12);}}
   @keyframes shimmer{0%,100%{text-shadow:0 0 18px rgba(255,182,193,0.5),0 0 40px rgba(255,182,193,0.2);}50%{text-shadow:0 0 28px rgba(255,182,193,0.9),0 0 60px rgba(255,182,193,0.4);}}
   @keyframes skeletonSlide{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
-  @keyframes steam{0%{transform:translateY(0) scale(1);opacity:0.4;}50%{transform:translateY(-12px) scale(1.3);opacity:0.6;}100%{transform:translateY(-24px) scale(1.6);opacity:0;}}
+  @keyframes steam{0%{transform:translate3d(0,0,0) scale(1);opacity:0.4;}50%{transform:translate3d(0,-12px,0) scale(1.3);opacity:0.6;}100%{transform:translate3d(0,-24px,0) scale(1.6);opacity:0;}}
   @keyframes swipeHintFade{0%{opacity:1;}70%{opacity:1;}100%{opacity:0;}}
-  @keyframes hintSwipe{0%{transform:translateX(0);}30%{transform:translateX(-18px);}60%{transform:translateX(14px);}100%{transform:translateX(0);}}
-  @keyframes hintPulseL{0%,100%{opacity:0.4;}50%{opacity:1;transform:translateX(-4px);}}
-  @keyframes hintPulseR{0%,100%{opacity:0.4;}50%{opacity:1;transform:translateX(4px);}}
-  @keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+  @keyframes hintSwipe{0%{transform:translate3d(0,0,0);}30%{transform:translate3d(-18px,0,0);}60%{transform:translate3d(14px,0,0);}100%{transform:translate3d(0,0,0);}}
+  @keyframes hintPulseL{0%,100%{opacity:0.4;}50%{opacity:1;transform:translate3d(-4px,0,0);}}
+  @keyframes hintPulseR{0%,100%{opacity:0.4;}50%{opacity:1;transform:translate3d(4px,0,0);}}
+  @keyframes fadeIn{from{opacity:0;transform:translate3d(0,10px,0);}to{opacity:1;transform:translate3d(0,0,0);}}
   @keyframes cursedPulse{0%,100%{opacity:0.7;transform:translate(-50%,-50%) scale(1);}50%{opacity:1;transform:translate(-50%,-50%) scale(1.12);}}
   @keyframes cursedLine{0%,100%{opacity:0.4;transform:scaleX(0.8);}50%{opacity:1;transform:scaleX(1.05);}}
   @keyframes hanaSparkle{0%,100%{color:white;text-shadow:0 0 20px rgba(255,182,193,0.4);}30%{color:#ffd6e8;text-shadow:0 0 30px rgba(255,182,193,1),0 0 60px rgba(255,182,193,0.6),0 0 100px rgba(255,150,180,0.4);}60%{color:#ffe8f0;text-shadow:0 0 15px rgba(255,182,193,0.6);}}
   @keyframes chapterBloom{from{opacity:0;filter:blur(12px) brightness(2);}to{opacity:1;filter:blur(0) brightness(1);}}
-  .chapter-section{animation:chapterBloom 1.1s ease-out both;}
+  @keyframes heartFloat{0%{opacity:1;transform:translate3d(0,0,0) scale(1.2);}30%{opacity:0.9;transform:translate3d(calc(var(--dx)*0.4),-20px,0) scale(1);}100%{opacity:0;transform:translate3d(var(--dx),-65px,0) scale(0.3);}}
+  @keyframes dustRise{0%{transform:translate3d(0,105vh,0) scale(0.6);opacity:0;}8%{opacity:1;}90%{opacity:0.7;}100%{transform:translate3d(var(--drift),calc(-8vh),0) scale(1.1);opacity:0;}}
+  @keyframes starShoot{0%{transform:translate3d(0,0,0) scale(1) rotate(0deg);opacity:1;}100%{transform:translate3d(var(--sx),var(--sy),0) scale(0) rotate(var(--sr));opacity:0;}}
+  @keyframes trailDot{0%{transform:translate3d(0,0,0) scale(0);opacity:0;}20%{transform:translate3d(calc(var(--sx)*0.35),calc(var(--sy)*0.35),0) scale(1.1);opacity:1;}100%{transform:translate3d(var(--sx),var(--sy),0) scale(0);opacity:0;}}
+  .dream-grid{display:grid;gap:22px;grid-template-columns:1fr;}
+  @media(min-width:600px){.dream-grid{grid-template-columns:repeat(2,1fr);}}
+  @media(min-width:900px){.dream-grid{grid-template-columns:repeat(4,1fr);}}
+  .dream-grid>div{height:100%;}
+  .dream-grid>div>div{height:100%;}
 `;
 
 export default function App() {
@@ -2150,6 +2814,7 @@ export default function App() {
       <Analytics />
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Lora:ital@0;1&display=swap" />
       <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Lora:ital@0;1&display=swap" />
       <style>{globalCss}</style>
       <ScrollBar />
@@ -2226,12 +2891,8 @@ export default function App() {
 
       {/* CHAPTER 3  -  THE MISSING */}
       <div style={{background:"linear-gradient(180deg,#0d0d1a 0%,#12122a 40%,#1a1a3a 70%,#0f0f20 100%)",padding:"90px 20px",position:"relative",overflow:"hidden"}}>
-        {/* Stars */}
-        <div style={{position:"absolute",inset:0,pointerEvents:"none"}}>
-          {Array.from({length:60},(_,i)=>(
-            <div key={i} style={{position:"absolute",width:i%5===0?2.5:1.5,height:i%5===0?2.5:1.5,borderRadius:"50%",background:"white",opacity:0.3+Math.random()*0.5,top:`${Math.random()*100}%`,left:`${Math.random()*100}%`,animation:`blink ${2+Math.random()*3}s ease-in-out infinite ${Math.random()*4}s`}}/>
-          ))}
-        </div>
+        {/* Stars - memoized so they don't recreate on every render */}
+        <Chapter3Stars />
         {/* Moon */}
         <div style={{position:"absolute",top:"8%",right:"8%",width:52,height:52,borderRadius:"50%",background:"radial-gradient(circle at 35% 35%,#fffde0,#f5e090)",boxShadow:"0 0 30px 10px rgba(255,240,150,0.2)",opacity:0.85,pointerEvents:"none"}}/>
 
@@ -2343,13 +3004,6 @@ export default function App() {
           <ChapterBloom><CursedGlow><p style={{fontSize:"0.72rem",letterSpacing:"0.28em",textTransform:"uppercase",color:"#d4a843",marginBottom:12}}>Chapter Four</p></CursedGlow></ChapterBloom>
           <Fade delay={0.1}><h2>Everything we were going to do</h2></Fade>
           <Fade delay={0.15}><p style={{marginBottom:36}}>We made so many plans. They were the whole shape of a future we were building together in our head, moment by moment. There was still many more to come.</p></Fade>
-          <style>{`
-            .dream-grid { display:grid; gap:22px; grid-template-columns: 1fr; }
-            @media(min-width:600px) { .dream-grid { grid-template-columns: repeat(2, 1fr); } }
-            @media(min-width:900px) { .dream-grid { grid-template-columns: repeat(4, 1fr); } }
-            .dream-grid > div { height: 100%; }
-            .dream-grid > div > div { height: 100%; }
-          `}</style>
           <div className="dream-grid">
             {[
               {scene:<SceneCafe/>,emoji:"☕",title:"Café hopping & Cat Café",desc:"We planned to go to so many cafes. I really wanted to go the cat cafe with you. Boba you liked really much, which we planned to go for as well and the momos place that you said was really good. There was a whole city to explore together and then the entire country and the world."},
@@ -2377,7 +3031,7 @@ export default function App() {
         <ChapterBloom><CursedGlow><p style={{textAlign:"center",fontSize:"0.72rem",letterSpacing:"0.28em",textTransform:"uppercase",color:"#d4a843",marginBottom:12}}>Chapter Five</p></CursedGlow></ChapterBloom>
         <Fade delay={0.1}><h2 style={{textAlign:"center",marginBottom:40}}>What I want to say to you</h2></Fade>
         <Fade delay={0.2}>
-        <div style={{maxWidth:700,margin:"0 auto",background:"white",borderRadius:4,padding:"56px 52px",boxShadow:"0 8px 60px rgba(0,0,0,0.08),4px 4px 0 #d4a843"}}>
+        <div style={{maxWidth:700,margin:"0 auto",background:"white",borderRadius:4,padding:"clamp(28px,6vw,56px) clamp(20px,6vw,52px)",boxShadow:"0 8px 60px rgba(0,0,0,0.08),4px 4px 0 #d4a843"}}>
           <p style={{fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:"1.25rem",color:"#2c1810",marginBottom:8}}>Hana,</p>
           <p>Firstly, I am not blaming you for anything and you are not a bad person. You said you took this decision after thinking very much, I know you must have thought something. That's okay! I still don't know what exactly you thought though that made you take this step.</p>
           <p>I know now that our brain makes decisions sometimes in ways that are meant to protect us based on our past experiences. That's okay. But all I wanted was for you to not carry those thoughts alone. You can trust me with that ma'am. That's what being there for each other means.</p>
@@ -2407,18 +3061,22 @@ export default function App() {
       </div>
 
       {/* COSMIC LOVE */}
-      <CosmicLoveSection />
+      <div className="section-gpu">
+        <CosmicLoveSection />
+      </div>
 
       {/* MEMORIES */}
-      <MemoriesSection />
+      <div className="section-gpu">
+        <MemoriesSection />
+      </div>
+
+      {/* SCRATCH CARDS */}
+      <ScratchCardSection />
 
       {/* VIDEO */}
-      <div style={{background:"linear-gradient(180deg,#1a1a2e 0%,#16213e 100%)",padding:"60px 20px",textAlign:"center",position:"relative",overflow:"hidden"}}>
+      <div className="section-gpu section-offscreen" style={{background:"linear-gradient(180deg,#1a1a2e 0%,#16213e 100%)",padding:"60px 20px",textAlign:"center",position:"relative",overflow:"hidden"}}>
         <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse at center, rgba(139,92,246,0.07) 0%, transparent 65%)",pointerEvents:"none"}}/>
         <div style={{position:"relative",zIndex:1,maxWidth:420,margin:"0 auto"}}>
-          <p style={{fontSize:"0.7rem",letterSpacing:"0.28em",textTransform:"uppercase",color:"#d4a843",marginBottom:10,fontFamily:"'Playfair Display',serif"}}>A little something</p>
-          <h2 style={{fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:"clamp(1.5rem,4vw,2.2rem)",color:"white",marginBottom:28,textShadow:"0 0 30px rgba(255,182,193,0.3)"}}>For you 🌸</h2>
-
           <VideoSlider />
         </div>
       </div>
