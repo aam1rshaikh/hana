@@ -2178,7 +2178,6 @@ function ScratchCardSection() {
       opacity -= 0.08;
       if(opacity <= 0){
         ctx.clearRect(0,0,canvas.width,canvas.height);
-        if(pos >= photos.length - 1) setAllDone(true);
         setRevealed(true);
         return;
       }
@@ -2189,11 +2188,15 @@ function ScratchCardSection() {
       requestAnimationFrame(fade);
     };
     requestAnimationFrame(fade);
-  }, [pos]);
+  }, []);
 
   const handleNextTap = () => {
     if(!revealed) return;
-    if(allDone){ startOver(); return; }
+    // If we're on the last card, start over
+    if(pos >= photos.length - 1) {
+      startOver();
+      return;
+    }
     setPos(p => p+1);
   };
 
@@ -2389,7 +2392,7 @@ function ScratchCardSection() {
           {revealed && (
             <div style={{position:"absolute",inset:0,display:"flex",alignItems:"flex-end",justifyContent:"center",borderRadius:20,background:"linear-gradient(transparent 55%,rgba(0,0,0,0.6))",animation:"fadeIn 0.5s ease"}}>
               <p style={{color:"white",fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:"0.85rem",margin:"0 0 18px",textShadow:"0 1px 4px rgba(0,0,0,0.8)"}}>
-                {allDone ? "Tap to start over ✨" : "Tap to reveal next 🌸"}
+                {pos >= photos.length - 1 ? "Tap to start over ✨" : "Tap to reveal next 🌸"}
               </p>
             </div>
           )}
@@ -2797,6 +2800,307 @@ const globalCss=`
   .dream-grid>div>div{height:100%;}
 `;
 
+// ─── INSTAGRAM CHAT SECTION ─────────────────────────────────────────────────
+function InstagramChatSection() {
+  const [open, setOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState(false);
+  const iframeRef = useRef(null);
+
+  const stats = [
+    { emoji: "💬", value: "83,269", label: "messages sent" },
+    { emoji: "📅", value: "291", label: "days of talking" },
+    { emoji: "📖", value: "377,111", label: "words exchanged" },
+  ];
+
+  const funFacts = [
+  ];
+
+  const handleButtonClick = () => {
+    if (isAuthenticated) {
+      setOpen(o => !o);
+    } else {
+      setShowPasswordPrompt(true);
+    }
+  };
+
+  const handlePasswordSubmit = (e) => {
+    e.preventDefault();
+    if (password.toLowerCase() === "hana") {
+      setIsAuthenticated(true);
+      setShowPasswordPrompt(false);
+      setPassword("");
+      setError(false);
+      setOpen(true);
+    } else {
+      setError(true);
+      setTimeout(() => setError(false), 2000);
+    }
+  };
+
+  const handleCancel = () => {
+    setShowPasswordPrompt(false);
+    setPassword("");
+    setError(false);
+  };
+
+  return (
+    <div style={{ background: "linear-gradient(180deg,#0d0018 0%,#1a0a2e 50%,#0d0018 100%)", padding: "80px 20px", position: "relative", overflow: "hidden" }}>
+      {/* ambient glow */}
+      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 30% 50%, rgba(180,0,120,0.12) 0%, transparent 60%), radial-gradient(ellipse at 70% 50%, rgba(120,0,180,0.1) 0%, transparent 60%)", pointerEvents: "none" }} />
+
+      <div style={{ maxWidth: 700, margin: "0 auto", position: "relative", zIndex: 1 }}>
+
+        {/* Header */}
+        <Fade>
+          <div style={{ textAlign: "center", marginBottom: 48 }}>
+            <div style={{ fontSize: "2.2rem", marginBottom: 14, animation: "hanaSparkle 2.5s ease-in-out infinite" }}>💌</div>
+            <p style={{ fontSize: "0.72rem", letterSpacing: "0.28em", textTransform: "uppercase", color: "#d4a843", marginBottom: 10, fontFamily: "'Playfair Display', serif" }}>In numbers</p>
+            <h2 style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", color: "white", fontSize: "clamp(1.5rem,4vw,2.2rem)", marginBottom: 14, textShadow: "0 0 30px rgba(255,100,180,0.3)" }}>
+              Our conversations
+            </h2>
+            <p style={{ color: "rgba(255,200,230,0.55)", fontSize: "0.9rem", fontStyle: "italic", letterSpacing: "0.04em", maxWidth: 420, margin: "0 auto" }}>
+              Oct 14, 2023 → Jul 31, 2024 &nbsp;·&nbsp; Instagram DMs
+            </p>
+          </div>
+        </Fade>
+
+        {/* Stat cards */}
+        <Fade delay={0.1}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14, marginBottom: 28 }}>
+            {stats.map((s, i) => (
+              <div key={i} style={{
+                background: "rgba(255,255,255,0.03)",
+                border: "1px solid rgba(220,80,160,0.2)",
+                borderRadius: 18,
+                padding: "22px 18px",
+                textAlign: "center",
+                backdropFilter: "blur(10px)",
+                boxShadow: "0 4px 24px rgba(160,0,100,0.12)",
+                transition: "transform 0.2s ease",
+              }}
+                onMouseEnter={e => e.currentTarget.style.transform = "translateY(-3px)"}
+                onMouseLeave={e => e.currentTarget.style.transform = "translateY(0)"}
+              >
+                <div style={{ fontSize: "1.6rem", marginBottom: 8 }}>{s.emoji}</div>
+                <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(1.2rem,4vw,1.7rem)", fontWeight: 600, color: "#ffd6ee", marginBottom: 4, letterSpacing: "-0.01em" }}>{s.value}</div>
+                <div style={{ fontSize: "0.75rem", color: "rgba(255,160,210,0.6)", letterSpacing: "0.06em", textTransform: "uppercase" }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </Fade>
+
+        {/* Fun facts */}
+        <Fade delay={0.15}>
+          <div style={{ marginBottom: 40 }}>
+            {funFacts.map((f, i) => (
+              <div key={i} style={{
+                display: "flex", alignItems: "flex-start", gap: 14,
+                padding: "14px 0",
+                borderBottom: i < funFacts.length - 1 ? "1px solid rgba(220,80,160,0.1)" : "none",
+              }}>
+                <span style={{ fontSize: "1.2rem", flexShrink: 0, marginTop: 1 }}>{f.emoji}</span>
+                <p style={{ margin: 0, color: "rgba(255,200,230,0.8)", fontSize: "0.9rem", lineHeight: 1.7, fontStyle: "italic", fontFamily: "'Lora', serif" }}>{f.text}</p>
+              </div>
+            ))}
+          </div>
+        </Fade>
+
+        {/* Toggle button */}
+        <Fade delay={0.2}>
+          <div style={{ textAlign: "center" }}>
+            <button
+              onClick={handleButtonClick}
+              style={{
+                background: open
+                  ? "rgba(100,0,70,0.5)"
+                  : "linear-gradient(135deg,rgba(180,0,120,0.2),rgba(120,0,160,0.2))",
+                border: "1px solid rgba(220,80,160,0.35)",
+                color: "white",
+                fontFamily: "'Playfair Display', serif",
+                fontStyle: "italic",
+                fontSize: "1rem",
+                padding: "14px 36px",
+                borderRadius: 50,
+                cursor: "pointer",
+                backdropFilter: "blur(10px)",
+                boxShadow: open ? "none" : "0 0 30px rgba(180,0,120,0.2)",
+                letterSpacing: "0.04em",
+                transition: "all 0.3s ease",
+                display: "inline-flex", alignItems: "center", gap: 10,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 0 40px rgba(220,80,160,0.35)"; e.currentTarget.style.transform = "scale(1.03)"; }}
+              onMouseLeave={e => { e.currentTarget.style.boxShadow = open ? "none" : "0 0 30px rgba(180,0,120,0.2)"; e.currentTarget.style.transform = "scale(1)"; }}
+            >
+              <span>{open ? "💌" : "💬"}</span>
+              <span>{open ? "Close conversations" : "Read our conversations"}</span>
+              <span style={{ fontSize: "0.8rem", opacity: 0.7, transition: "transform 0.3s ease", transform: open ? "rotate(180deg)" : "rotate(0deg)", display: "inline-block" }}>▼</span>
+            </button>
+          </div>
+        </Fade>
+
+        {/* Collapsible iframe */}
+        <div style={{
+          maxHeight: open ? "900px" : "0px",
+          overflow: "hidden",
+          transition: "max-height 0.6s cubic-bezier(0.4,0,0.2,1)",
+          marginTop: open ? 28 : 0,
+        }}>
+          <div style={{
+            border: "1px solid rgba(220,80,160,0.2)",
+            borderRadius: 20,
+            overflow: "hidden",
+            boxShadow: "0 8px 48px rgba(160,0,100,0.25)",
+            opacity: open ? 1 : 0,
+            transition: "opacity 0.4s ease 0.2s",
+          }}>
+            {open && (
+              <iframe
+                ref={iframeRef}
+                src="https://hana-aamir.vercel.app"
+                style={{ width: "100%", height: "85vh", border: "none", display: "block" }}
+                title="Our Instagram conversations"
+                loading="lazy"
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Password Modal */}
+        {showPasswordPrompt && (
+          <div style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
+            background: "rgba(0,0,0,0.85)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+            animation: "fadeIn 0.3s ease"
+          }}>
+            <div style={{
+              background: "linear-gradient(135deg,#1a0a2e 0%,#2d1440 100%)",
+              borderRadius: 20,
+              padding: "32px 28px",
+              width: "100%",
+              maxWidth: 380,
+              border: "1px solid rgba(220,80,160,0.3)",
+              boxShadow: "0 20px 60px rgba(180,0,120,0.4)"
+            }}>
+              <div style={{ textAlign: "center", marginBottom: 24 }}>
+                <div style={{ fontSize: "2rem", marginBottom: 12 }}>🔒</div>
+                <p style={{
+                  color: "rgba(255,200,230,0.7)",
+                  fontSize: "0.9rem",
+                  fontStyle: "italic",
+                  marginBottom: 0
+                }}>Hint: The name I call you the most 🌸</p>
+              </div>
+
+              <form onSubmit={handlePasswordSubmit}>
+                <input
+                  type="password"
+                  placeholder="Enter password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoFocus
+                  style={{
+                    width: "100%",
+                    padding: "12px 16px",
+                    borderRadius: 12,
+                    border: error ? "1.5px solid rgba(255,80,80,0.6)" : "1px solid rgba(220,80,160,0.4)",
+                    background: "rgba(255,255,255,0.05)",
+                    color: "white",
+                    fontFamily: "'Playfair Display',serif",
+                    fontSize: "0.95rem",
+                    boxSizing: "border-box",
+                    marginBottom: 16,
+                    outline: "none",
+                    transition: "border 0.3s ease"
+                  }}
+                  onFocus={(e) => {
+                    if (!error) e.target.style.border = "1.5px solid rgba(220,80,160,0.6)";
+                  }}
+                  onBlur={(e) => {
+                    if (!error) e.target.style.border = "1px solid rgba(220,80,160,0.4)";
+                  }}
+                />
+                
+                {error && (
+                  <p style={{
+                    color: "#ff6b6b",
+                    fontSize: "0.8rem",
+                    marginBottom: 12,
+                    marginTop: -8,
+                    fontStyle: "italic"
+                  }}>Incorrect password. Try again! 💛</p>
+                )}
+
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button
+                    type="submit"
+                    style={{
+                      flex: 1,
+                      padding: "12px",
+                      borderRadius: 12,
+                      background: "linear-gradient(135deg,rgba(180,0,120,0.5),rgba(120,0,160,0.5))",
+                      border: "1px solid rgba(220,80,160,0.5)",
+                      color: "white",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      fontFamily: "'Playfair Display',serif",
+                      fontSize: "0.95rem",
+                      transition: "all 0.3s ease"
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "linear-gradient(135deg,rgba(180,0,120,0.7),rgba(120,0,160,0.7))";
+                      e.currentTarget.style.transform = "translateY(-1px)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "linear-gradient(135deg,rgba(180,0,120,0.5),rgba(120,0,160,0.5))";
+                      e.currentTarget.style.transform = "translateY(0)";
+                    }}
+                  >
+                    Enter
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    style={{
+                      flex: 1,
+                      padding: "12px",
+                      borderRadius: 12,
+                      background: "rgba(255,255,255,0.05)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      color: "rgba(255,255,255,0.7)",
+                      cursor: "pointer",
+                      fontFamily: "'Playfair Display',serif",
+                      fontSize: "0.95rem",
+                      transition: "all 0.3s ease"
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "rgba(255,255,255,0.08)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [customCards, setCustomCards] = useState([]);
   useEffect(()=>{
@@ -3080,6 +3384,9 @@ export default function App() {
           <VideoSlider />
         </div>
       </div>
+
+      {/* INSTAGRAM CHAT SECTION */}
+      <InstagramChatSection />
 
       {/* COMMENTS */}
       <CommentsSection />
