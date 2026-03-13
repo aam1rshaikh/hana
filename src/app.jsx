@@ -3387,6 +3387,10 @@ export default function App() {
         const section = document.getElementById(sectionId);
         if (section) {
           section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          // Remove the hash from URL after scrolling, keeping the clean base URL
+          setTimeout(() => {
+            window.history.replaceState(null, '', window.location.origin + window.location.pathname);
+          }, 800);
         }
       }, 500); // Increased delay to ensure page is fully loaded
       
