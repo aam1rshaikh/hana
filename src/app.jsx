@@ -3382,19 +3382,26 @@ export default function App() {
     if (hash) {
       // Remove the # symbol
       const sectionId = hash.substring(1);
-      // Wait for page to fully render
-      const timeoutId = setTimeout(() => {
+      
+      // Wait for page to fully render, then scroll
+      const scrollTimeoutId = setTimeout(() => {
         const section = document.getElementById(sectionId);
         if (section) {
           section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          // Remove the hash from URL after scrolling, keeping the clean base URL
-          setTimeout(() => {
-            window.history.replaceState(null, '', window.location.origin + window.location.pathname);
-          }, 800);
         }
-      }, 500); // Increased delay to ensure page is fully loaded
+      }, 500);
       
-      return () => clearTimeout(timeoutId);
+      // Remove the hash from URL after scrolling completes
+      const cleanupTimeoutId = setTimeout(() => {
+        // Replace the URL without the hash, without adding to browser history
+        const cleanUrl = window.location.origin + window.location.pathname + window.location.search;
+        window.history.replaceState(null, '', cleanUrl);
+      }, 1500); // Wait for scroll animation to complete
+      
+      return () => {
+        clearTimeout(scrollTimeoutId);
+        clearTimeout(cleanupTimeoutId);
+      };
     }
   }, []);
   
