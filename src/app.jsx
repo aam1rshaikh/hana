@@ -3487,7 +3487,34 @@ export default function App() {
         </div>
       </div>
 
-      {/* CHAPTER 3  -  THE MISSING */}
+      {/* CHAPTER 3 - A GOOD OMEN */}
+      <div style={{background:"linear-gradient(135deg, #fef9f0 0%, #f9f4e8 50%, #fef9f0 100%)",padding:"80px 20px"}}>
+        <div style={{maxWidth:760,margin:"0 auto"}}>
+          <ChapterBloom><CursedGlow><p style={{fontSize:"0.72rem",letterSpacing:"0.28em",textTransform:"uppercase",color:"#d4a843",marginBottom:12}}>Chapter Three</p></CursedGlow></ChapterBloom>
+          <Fade delay={0.1}><h2>A Good Omen</h2></Fade>
+          <Fade delay={0.2}><p>Bushra, A good omen! That is what your name means, and I think about how perfectly that is true. How before I fully understood what was happening between us, something in me already knew you were the kind of presence that changes things for the better, Just by existing, Just by being near.</p></Fade>
+          <Fade delay={0.1}><p>I know you said what you said that day was to protect me because somewhere inside you, you have a feeling that love meant stepping aside before it hurts someone. You think withdrawing is how you protect me and yourself.</p></Fade>
+          <Fade delay={0.1}><p>I remember when we just started talking, you said once that that you have utterly nonsense thought process and that you are very flawed due to your experiences an will not be able to offer more than receiving which is not fair. I've turned those words over many times. You know ma'am, nobody who is truly selfish worries this much about being selfish. Nobody who is truly flawed spends this much energy trying to protect someone from getting hurt.</p></Fade>
+          <Fade delay={0.1}><p>Every moment of difficulty you've gone through has taught you something about survival, about resilience, about the depth of your own strength. Yes, those experiences have made you cautious. They've taught you to protect yourself, to pull back when things feel too intense, to question whether you deserve the very thing you want most.</p></Fade>
+          <Fade delay={0.1}><p>That's not nonsense. That's not flaw. That's your nervous system doing exactly what it learned to do to keep you safe.</p></Fade>
+          <Fade delay={0.1}>
+            <div style={{margin:"28px 0",padding:"20px 24px",background:"linear-gradient(135deg,rgba(212,168,67,0.08),rgba(212,168,67,0.04))",borderLeft:"4px solid #d4a843",borderRadius:"0 12px 12px 0"}}>
+              <p style={{fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:"1.05rem",color:"#2c1810",margin:0,lineHeight:1.85}}>I want to tell you something gently, You are not too much. You are not too little. You are not the past of everything that hurt you. You deserve to be loved without having to hide the parts of yourself that you think are unlovable ma'am. your experiences did not make you less. They made you someone who is strong and resilient and kind.</p>
+            </div>
+          </Fade>
+          <Fade delay={0.1}><p>You said you can only receive, not give. But I remember every small thing you've done that disproves that. The way you listen, always ready to get me stuff whenever I tell about something, the way you are always there for me, the way you notice and the way you care.</p></Fade>
+          <Fade delay={0.1}><p>I don't need you to be perfect. I need you to be present, that's all. I don't need you to have it figured out. I don't need you to show up without your fears or your silences or your past. I just need you as you are. I like every flaw in you except your absence. You don't have to earn your place with me. It was never conditional. <span style={{fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:"1.05rem",color:"#8a6a3a"}}>I know you, the real you and you are someone worth staying for.</span></p></Fade>
+          <Fade delay={0.1}>
+            <p style={{textAlign:"center",fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:"1.15rem",color:"#8a6a3a",marginTop:36,marginBottom:8,lineHeight:1.8}}>
+              Take your time. Come back when you're ready.<br/>
+              I'll still be here.
+            </p>
+          </Fade>
+          <div style={{textAlign:"center",fontSize:"1.6rem",color:"#d4a843",opacity:0.45,margin:"10px 0",letterSpacing:10}}>· · ·</div>
+        </div>
+      </div>
+
+      {/* CHAPTER 4  -  THE MISSING */}
       <div style={{background:"linear-gradient(180deg,#0d0d1a 0%,#12122a 40%,#1a1a3a 70%,#0f0f20 100%)",padding:"90px 20px",position:"relative",overflow:"hidden"}}>
         {/* Stars - memoized so they don't recreate on every render */}
         <Chapter3Stars />
@@ -3495,7 +3522,7 @@ export default function App() {
         <div style={{position:"absolute",top:"8%",right:"8%",width:52,height:52,borderRadius:"50%",background:"radial-gradient(circle at 35% 35%,#fffde0,#f5e090)",boxShadow:"0 0 30px 10px rgba(255,240,150,0.2)",opacity:0.85,pointerEvents:"none"}}/>
 
         <div style={{maxWidth:720,margin:"0 auto",position:"relative",zIndex:1}}>
-          <ChapterBloom><CursedGlow><p style={{fontSize:"0.72rem",letterSpacing:"0.28em",textTransform:"uppercase",color:"rgba(255,182,193,0.7)",marginBottom:12}}>Chapter Three</p></CursedGlow></ChapterBloom>
+          <ChapterBloom><CursedGlow><p style={{fontSize:"0.72rem",letterSpacing:"0.28em",textTransform:"uppercase",color:"rgba(255,182,193,0.7)",marginBottom:12}}>Chapter Four</p></CursedGlow></ChapterBloom>
           <Fade delay={0.1}><h2 style={{color:"white",fontFamily:"'Playfair Display',serif",fontStyle:"italic",textShadow:"0 0 30px rgba(255,182,193,0.3)"}}>Everything the Quiet Holds</h2></Fade>
 
           <Fade delay={0.2}><p style={{color:"rgba(255,255,255,0.75)",lineHeight:1.95}}>I miss you ma'am, a lot. There is not just a single aspect that I miss about you. It's not that I just miss the conversations that we used to have all the time  -  I miss you, everything about you, the warmth, the love and the care that you had for me.</p></Fade>
@@ -3599,7 +3626,7 @@ export default function App() {
       <div style={{background:"linear-gradient(180deg,#fbe8c8 0%,#f5d4a0 26%,#e8c888 46%,#c4a464 66%,#8db87a 80%,#6a9a58 100%)",padding:"80px 20px",position:"relative",overflow:"hidden"}}>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:"40%",background:"radial-gradient(ellipse 90% 70% at 15% 100%,#5a8a3a 0%,transparent 55%),radial-gradient(ellipse 75% 65% at 85% 100%,#4a7a2a 0%,transparent 60%)",pointerEvents:"none"}} />
         <div style={{maxWidth:960,margin:"0 auto",position:"relative",zIndex:1}}>
-          <ChapterBloom><CursedGlow><p style={{fontSize:"0.72rem",letterSpacing:"0.28em",textTransform:"uppercase",color:"#d4a843",marginBottom:12}}>Chapter Four</p></CursedGlow></ChapterBloom>
+          <ChapterBloom><CursedGlow><p style={{fontSize:"0.72rem",letterSpacing:"0.28em",textTransform:"uppercase",color:"#d4a843",marginBottom:12}}>Chapter Five</p></CursedGlow></ChapterBloom>
           <Fade delay={0.1}><h2>Everything we were going to do</h2></Fade>
           <Fade delay={0.15}><p style={{marginBottom:36}}>We made so many plans. They were the whole shape of a future we were building together in our head, moment by moment. There was still many more to come.</p></Fade>
           <div className="dream-grid">
@@ -3624,9 +3651,9 @@ export default function App() {
         </div>
       </div>
 
-      {/* CHAPTER 4  -  LETTER */}
+      {/* CHAPTER 6  -  LETTER */}
       <div style={{background:"url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23d4a843' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E\"),linear-gradient(135deg,#fef9f0 0%,#f5e6c8 100%)",padding:"80px 20px"}}>
-        <ChapterBloom><CursedGlow><p style={{textAlign:"center",fontSize:"0.72rem",letterSpacing:"0.28em",textTransform:"uppercase",color:"#d4a843",marginBottom:12}}>Chapter Five</p></CursedGlow></ChapterBloom>
+        <ChapterBloom><CursedGlow><p style={{textAlign:"center",fontSize:"0.72rem",letterSpacing:"0.28em",textTransform:"uppercase",color:"#d4a843",marginBottom:12}}>Chapter Six</p></CursedGlow></ChapterBloom>
         <Fade delay={0.1}><h2 style={{textAlign:"center",marginBottom:40}}>What I want to say to you</h2></Fade>
         <Fade delay={0.2}>
         <div style={{maxWidth:700,margin:"0 auto",background:"white",borderRadius:4,padding:"clamp(28px,6vw,56px) clamp(20px,6vw,52px)",boxShadow:"0 8px 60px rgba(0,0,0,0.08),4px 4px 0 #d4a843"}}>
