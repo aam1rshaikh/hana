@@ -331,9 +331,14 @@ function InstagramChatSection() {
 
         {/* Stat cards */}
         <Fade delay={0.1}>
+          <style>{`
+            @media (max-width: 480px) {
+              .stat-card-last { grid-column: 1 / -1 !important; }
+            }
+          `}</style>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 14, marginBottom: 28 }}>
             {stats.map((s, i) => (
-              <div key={i} style={{
+              <div key={i} className={i === 2 ? "stat-card-last" : ""} style={{
                 background: "rgba(255,255,255,0.55)",
                 border: "1px solid rgba(160,130,80,0.35)",
                 borderRadius: 4,

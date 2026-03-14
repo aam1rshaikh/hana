@@ -142,7 +142,7 @@ export default function App() {
           <footer style={{ textAlign: "center", padding: "60px 20px", background: "#fef9f0" }}>
             <div style={{ color: "#d4a843", fontSize: "1rem", letterSpacing: 12, marginBottom: 24, opacity: 0.45 }}>✦ ✦ ✦</div>
             <p style={{ fontFamily: "'Playfair Display',serif", fontStyle: "italic", fontSize: "1rem", color: "#6b4c3b", textAlign: "center", marginBottom: 0 }}>
-              Made with so much love,<br />and the quiet belief there is still more to come Insha Allah.<br />
+              Made with so much love,<br />and the quiet belief there is still more to come InshaAllah.<br />
               <em style={{ fontSize: "0.85rem", opacity: 0.6 }}> - Aamir 💛</em>
             </p>
           </footer>
