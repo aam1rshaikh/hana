@@ -1,6 +1,6 @@
 {
   "files": {
-    "main.js": "/hana/static/js/main.3b162f22.js",
+    "main.js": "/hana/static/js/main.6621b59f.js",
     "static/js/258.162ed909.chunk.js": "/hana/static/js/258.162ed909.chunk.js",
     "static/js/364.fb1eb3f0.chunk.js": "/hana/static/js/364.fb1eb3f0.chunk.js",
     "static/js/649.aacbc464.chunk.js": "/hana/static/js/649.aacbc464.chunk.js",
@@ -15,7 +15,7 @@
     "static/js/891.1049c6b2.chunk.js": "/hana/static/js/891.1049c6b2.chunk.js",
     "static/js/577.637487f6.chunk.js": "/hana/static/js/577.637487f6.chunk.js",
     "index.html": "/hana/index.html",
-    "main.3b162f22.js.map": "/hana/static/js/main.3b162f22.js.map",
+    "main.6621b59f.js.map": "/hana/static/js/main.6621b59f.js.map",
     "258.162ed909.chunk.js.map": "/hana/static/js/258.162ed909.chunk.js.map",
     "364.fb1eb3f0.chunk.js.map": "/hana/static/js/364.fb1eb3f0.chunk.js.map",
     "649.aacbc464.chunk.js.map": "/hana/static/js/649.aacbc464.chunk.js.map",
@@ -31,6 +31,6 @@
     "577.637487f6.chunk.js.map": "/hana/static/js/577.637487f6.chunk.js.map"
   },
   "entrypoints": [
-    "static/js/main.3b162f22.js"
+    "static/js/main.6621b59f.js"
   ]
 }
