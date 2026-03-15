@@ -8,9 +8,9 @@ function InstagramChatSection() {
   const [error, setError] = useState(false);
 
   const stats = [
-    { emoji: "💬", value: "133,273", label: "messages sent", sub: "and counting" },
+    { emoji: "💬", value: "1,33,273", label: "messages sent", sub: "and counting" },
     { emoji: "📅", value: "2y 3m 15d", label: "days of conversation on instagram", sub: "" },
-    { emoji: "📖", value: "561,454", label: "words exchanged", sub: "that's 7 novels worth" },
+    { emoji: "📖", value: "5,61,454", label: "words exchanged", sub: "that's 7 novels worth" },
   ];
 
   const funFacts = [
@@ -447,8 +447,8 @@ function InstagramChatSection() {
                     fontSize: "0.95rem",
                     fontStyle: "italic",
                     marginBottom: 0,
-                    fontFamily: "'Playfair Display',serif"
-                  }}>Hint: The name I call you the most 🌸</p>
+                    fontFamily: "'Special Elite', 'Courier New', monospace"
+                  }}>Hint: The name I call you most & how I've saved your contact 🌸</p>
                 </div>
 
                 <form onSubmit={handlePasswordSubmit}>
