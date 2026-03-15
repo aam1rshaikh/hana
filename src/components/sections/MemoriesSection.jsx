@@ -107,123 +107,183 @@ function SwipeHintWrapper({ children }) {
 // ─── Photo carousel ───────────────────────────────────────────────────────────
 function PhotoCarousel({ photos, captions, onDelete, deleteId, pwd, setPwd, deleting, handleDelete, cancelDelete }) {
   const [idx, setIdx] = useState(0);
-  const [flyDir, setFlyDir] = useState(null);
-  const [noAnim, setNoAnim] = useState(false);
-  const [dragX, setDragX] = useState(0);
-  const [dragging, setDragging] = useState(false);
   const [loadedImgs, setLoadedImgs] = useState(new Set());
-  const startX = useRef(null);
+  const idxRef = useRef(0);
+  const viewportRef = useRef(null);
+  const prevSlotRef = useRef(null);
+  const currSlotRef = useRef(null);
+  const nextSlotRef = useRef(null);
+  const startXRef = useRef(0);
+  const startYRef = useRef(0);
+  const currentDxRef = useRef(0);
+  const isDraggingRef = useRef(false);
+  const isHorizontalRef = useRef(null);
 
-  const dismiss = (dir) => {
-    if (flyDir) return;
-    setFlyDir(dir);
-    setTimeout(() => {
-      setNoAnim(true);
-      setIdx(i => dir === 'left' ? (i === photos.length - 1 ? 0 : i + 1) : (i === 0 ? photos.length - 1 : i - 1));
-      setFlyDir(null);
-      setDragX(0);
-      requestAnimationFrame(() => requestAnimationFrame(() => setNoAnim(false)));
-    }, 340);
-  };
+  // Apply position to the 3 slots: prev=-100%, curr=0%, next=100%
+  // Plus drag offset on all three
+  const applySlots = useCallback((dx = 0, animate = false) => {
+    const tr = animate ? "transform 0.32s cubic-bezier(0.25,0.46,0.45,0.94)" : "none";
+    [prevSlotRef, currSlotRef, nextSlotRef].forEach((ref, i) => {
+      if (!ref.current) return;
+      const base = (i - 1) * 100; // -100, 0, 100
+      ref.current.style.transition = tr;
+      ref.current.style.transform = `translateX(calc(${base}% + ${dx}px))`;
+    });
+  }, []);
 
-  const onTD = e => { e.stopPropagation(); startX.current = e.touches[0].clientX; setDragging(true); };
-  const onTM = e => { if (!dragging || flyDir) return; e.stopPropagation(); setDragX(e.touches[0].clientX - startX.current); };
-  const onTE = e => {
-    e.stopPropagation();
-    setDragging(false);
-    if (Math.abs(dragX) > 80) dismiss(dragX < 0 ? 'left' : 'right');
-    else setDragX(0);
-    startX.current = null;
-  };
-  const onMD = e => { startX.current = e.clientX; setDragging(true); };
-  const onMM = e => { if (!dragging || flyDir) return; setDragX(e.clientX - startX.current); };
-  const onMU = () => {
-    setDragging(false);
-    if (Math.abs(dragX) > 80) dismiss(dragX < 0 ? 'left' : 'right');
-    else setDragX(0);
-    startX.current = null;
-  };
+  useEffect(() => {
+    idxRef.current = idx;
+    applySlots(0, true);
+  }, [idx, applySlots]);
+
+  const goTo = useCallback((i) => {
+    setIdx((i + photos.length) % photos.length);
+  }, [photos.length]);
+
+  const onTD = useCallback((e) => {
+    if (e.touches.length > 1) return;
+    startXRef.current = e.touches[0].clientX;
+    startYRef.current = e.touches[0].clientY;
+    currentDxRef.current = 0;
+    isDraggingRef.current = true;
+    isHorizontalRef.current = null;
+    applySlots(0, false);
+  }, [applySlots]);
+
+  const onTM = useCallback((e) => {
+    if (!isDraggingRef.current || e.touches.length > 1) return;
+    const dx = e.touches[0].clientX - startXRef.current;
+    const dy = e.touches[0].clientY - startYRef.current;
+    if (isHorizontalRef.current === null && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
+      isHorizontalRef.current = Math.abs(dx) > Math.abs(dy);
+    }
+    if (isHorizontalRef.current === false) return;
+    e.preventDefault();
+    currentDxRef.current = dx;
+    const atStart = idxRef.current === 0 && dx > 0;
+    const atEnd = idxRef.current === photos.length - 1 && dx < 0;
+    applySlots((atStart || atEnd) ? dx * 0.15 : dx, false);
+  }, [photos.length, applySlots]);
+
+  const onTE = useCallback(() => {
+    if (!isDraggingRef.current) return;
+    isDraggingRef.current = false;
+    const dx = currentDxRef.current;
+    const w = viewportRef.current?.offsetWidth || 360;
+    if (isHorizontalRef.current && Math.abs(dx) > w * 0.2) {
+      goTo(dx < 0 ? idxRef.current + 1 : idxRef.current - 1);
+    } else {
+      applySlots(0, true);
+    }
+    currentDxRef.current = 0;
+    isHorizontalRef.current = null;
+  }, [goTo, applySlots]);
 
   if (!photos.length) return null;
-  const p = photos[idx];
-  const n = photos.length;
-  const peekDir = flyDir || (dragX < 0 ? 'left' : dragX > 0 ? 'right' : null);
-  const peekPhoto = peekDir === 'left' ? photos[(idx + 1) % n] : photos[(idx - 1 + n) % n];
-  const peekBg = peekDir === 'left' ? GHIBLI_SCENES[(idx + 1) % GHIBLI_SCENES.length] : GHIBLI_SCENES[(idx - 1 + GHIBLI_SCENES.length) % GHIBLI_SCENES.length];
-  const SceneBg = GHIBLI_SCENES[idx % GHIBLI_SCENES.length];
-  const flyX = flyDir === 'left' ? -900 : flyDir === 'right' ? 900 : dragX;
-  const flyRot = flyDir === 'left' ? -30 : flyDir === 'right' ? 30 : dragX * 0.04;
-  const flyTrans = flyDir ? `translateX(${flyX}px) rotate(${flyRot}deg)` : `translateX(${dragX}px) rotate(${dragX * 0.04}deg)`;
-  const flyAnim = noAnim ? 'none' : flyDir ? 'transform 0.34s cubic-bezier(.4,0,.8,1)' : dragging ? 'none' : 'transform 0.22s ease-out';
-  const progress = flyDir ? 1 : Math.min(Math.abs(dragX) / 150, 1);
-  const peekScale = 0.92 + progress * 0.08;
-  const peekOffsetX = peekDir === 'left' ? 60 * (1 - progress) : -60 * (1 - progress);
-  const peekBrightness = 0.6 + progress * 0.4;
 
-  const cardBody = (photo, BgComp, isTop) => {
-    const loaded = loadedImgs.has(photo.url);
-    return <>
-      <div style={{position:"absolute",inset:0,zIndex:0,opacity:loaded?1:0,transition:"opacity 0.4s ease"}}><BgComp /></div>
-      {!loaded && <div style={{position:"absolute",inset:0,zIndex:5,background:"linear-gradient(135deg,#1a1a2e,#16213e)",display:"flex",alignItems:"center",justifyContent:"center"}}>
-        <div style={{width:"70%",borderRadius:4,overflow:"hidden",background:"rgba(255,255,255,0.06)"}}>
-          <div style={{width:"100%",paddingBottom:"100%",background:"linear-gradient(90deg,rgba(255,255,255,0.03) 0%,rgba(255,255,255,0.09) 50%,rgba(255,255,255,0.03) 100%)",backgroundSize:"200% 100%",animation:"skeletonSlide 1.4s ease-in-out infinite"}}/>
-        </div>
-      </div>}
-      <div style={{position:"relative",zIndex:10,padding:"44px 52px 26px",display:"flex",flexDirection:"column",alignItems:"center",opacity:loaded?1:0,transition:"opacity 0.4s ease"}}>
-        <div style={{width:"100%",background:"#fafaf5",borderRadius:3,padding:"6px 6px 0 6px",boxShadow:"0 8px 30px rgba(0,0,0,0.7)",transform:`rotate(${isTop?-0.8:0.6}deg)`}}>
-          <img loading="lazy" src={photo.url} alt="" decoding="async" style={{width:"100%",height:"auto",display:"block",borderRadius:2,pointerEvents:"none"}} onLoad={()=>setLoadedImgs(prev=>new Set([...prev,photo.url]))} />
-          <div style={{position:"relative",height:22,display:"flex",alignItems:"center",justifyContent:"center"}}>
-            <PolaroidFlora scene={photos.indexOf(photo)%GHIBLI_SCENES.length}/>
-            {captions[photo.name]&&(<p style={{margin:"0 20px",textAlign:"center",fontFamily:"'Lora',serif",fontStyle:"italic",fontSize:"0.65rem",color:"#5a3a2a",lineHeight:1.2,zIndex:1,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis"}}>"{captions[photo.name]}"</p>)}
+  const n = photos.length;
+  const prevPhoto = photos[(idx - 1 + n) % n];
+  const currPhoto = photos[idx];
+  const nextPhoto = photos[(idx + 1) % n];
+
+  const CardSkeleton = () => (
+    <div style={{position:"absolute",inset:0,zIndex:5,background:"linear-gradient(135deg,#1a1a2e,#16213e)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{width:"75%"}}>
+        <div style={{background:"rgba(255,255,255,0.07)",borderRadius:3,padding:"6px 6px 0 6px",boxShadow:"0 8px 30px rgba(0,0,0,0.5)"}}>
+          <div style={{width:"100%",paddingBottom:"100%",position:"relative",overflow:"hidden",borderRadius:2,background:"rgba(255,255,255,0.04)"}}>
+            <div style={{position:"absolute",inset:0,background:"linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.07) 50%,transparent 100%)",backgroundSize:"200% 100%",animation:"skeletonSlide 1.4s ease-in-out infinite"}}/>
+          </div>
+          <div style={{height:22,display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <div style={{width:"55%",height:6,borderRadius:3,background:"rgba(255,255,255,0.06)",overflow:"hidden",position:"relative"}}>
+              <div style={{position:"absolute",inset:0,background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent)",backgroundSize:"200% 100%",animation:"skeletonSlide 1.4s ease-in-out infinite 0.2s"}}/>
+            </div>
           </div>
         </div>
+        <div style={{display:"flex",justifyContent:"center",gap:6,marginTop:12}}>
+          {[0,0.2,0.4].map((dl,i)=>(
+            <div key={i} style={{width:6,height:6,borderRadius:"50%",background:"rgba(212,168,67,0.4)",animation:`blink 1.2s ease-in-out infinite ${dl}s`}}/>
+          ))}
+        </div>
       </div>
-      <div style={{position:"relative",zIndex:10,textAlign:"center",color:"rgba(255,255,255,0.8)",fontSize:"0.72rem",fontStyle:"italic",letterSpacing:"0.1em",padding:"4px 0 26px",opacity:loaded?1:0,transition:"opacity 0.4s ease"}}>
-        {photos.indexOf(photo)+1} / {photos.length}
+    </div>
+  );
+
+  const cardBody = (photo, sceneIdx, photoIdx) => {
+    const BgComp = GHIBLI_SCENES[sceneIdx % GHIBLI_SCENES.length];
+    const loaded = loadedImgs.has(photo.url);
+    return (
+      <div style={{position:"relative",height:"100%"}}>
+        <div style={{position:"absolute",inset:0,zIndex:0,opacity:loaded?1:0,transition:"opacity 0.5s ease"}}><BgComp /></div>
+        {!loaded && <CardSkeleton />}
+        <div style={{position:"relative",zIndex:10,padding:"44px 52px 26px",display:"flex",flexDirection:"column",alignItems:"center",opacity:loaded?1:0,transition:"opacity 0.5s ease"}}>
+          <div style={{width:"100%",background:"#fafaf5",borderRadius:3,padding:"6px 6px 0 6px",boxShadow:"0 8px 30px rgba(0,0,0,0.7)",transform:"rotate(-0.8deg)"}}>
+            <img src={photo.url} alt="" decoding="async"
+              style={{width:"100%",height:"auto",display:"block",borderRadius:2,pointerEvents:"none"}}
+              onLoad={()=>setLoadedImgs(prev=>new Set([...prev,photo.url]))} />
+            <div style={{position:"relative",height:22,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <PolaroidFlora scene={photoIdx % GHIBLI_SCENES.length}/>
+              {captions[photo.name]&&(<p style={{margin:"0 20px",textAlign:"center",fontFamily:"'Lora',serif",fontStyle:"italic",fontSize:"0.65rem",color:"#5a3a2a",lineHeight:1.2,zIndex:1,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis"}}>"{captions[photo.name]}"</p>)}
+            </div>
+          </div>
+        </div>
+        <div style={{position:"relative",zIndex:10,textAlign:"center",color:"rgba(255,255,255,0.8)",fontSize:"0.72rem",fontStyle:"italic",letterSpacing:"0.1em",padding:"4px 0 26px",opacity:loaded?1:0,transition:"opacity 0.5s ease"}}>
+          {photoIdx + 1} / {n}
+        </div>
       </div>
-    </>;
+    );
   };
 
   return (
     <div style={{position:"relative",maxWidth:400,margin:"0 auto",paddingBottom:4}}>
-      <div style={{display:"none"}}>
-        {[-1,0,1,2].map(offset=>{const ph=photos[(idx+offset+photos.length)%photos.length];return ph?<img key={ph.name} src={ph.url} alt=""/>:null;})}
-      </div>
-      <div style={{position:"relative"}}>
-        <div style={{visibility:"hidden",pointerEvents:"none",borderRadius:20,overflow:"hidden"}}>{cardBody(p,SceneBg,false)}</div>
-        <div style={{position:"absolute",inset:0}}>
-          {photos.length>1&&peekDir&&(
-            <div style={{position:"absolute",inset:0,borderRadius:20,overflow:"hidden",transform:`scale(${peekScale}) translateX(${peekOffsetX}px) translateY(${(1-peekScale)*40}px)`,transformOrigin:"center top",filter:`brightness(${peekBrightness})`,transition:noAnim?"none":dragging?"none":"transform 0.28s ease, filter 0.28s ease",zIndex:5,pointerEvents:"none"}}>
-              {cardBody(peekPhoto,peekBg,false)}
-            </div>
-          )}
-          <div style={{position:"absolute",inset:0,borderRadius:20,overflow:"hidden",transform:flyTrans,transition:flyAnim,zIndex:10,cursor:dragging?"grabbing":"grab",userSelect:"none",touchAction:"pan-y",willChange:"transform"}}
-            onMouseDown={onMD} onMouseMove={onMM} onMouseUp={onMU} onMouseLeave={onMU}
-            onTouchStart={onTD} onTouchMove={onTM} onTouchEnd={onTE}>
-            {cardBody(p,SceneBg,true)}
-            {deleteId===p.name?(
-              <div style={{position:"absolute",bottom:0,left:0,right:0,background:"rgba(0,0,0,0.9)",padding:"10px 14px",display:"flex",flexDirection:"column",gap:8,zIndex:20}}>
-                <span style={{color:"white",fontSize:"0.75rem",fontStyle:"italic",textAlign:"center"}}>Enter password to delete:</span>
-                <div style={{display:"flex",gap:6,justifyContent:"center"}}>
-                  <input type="password" value={pwd} onChange={e=>setPwd(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")handleDelete();if(e.key==="Escape")cancelDelete();}} placeholder="password" autoFocus style={{flex:1,maxWidth:130,border:"none",borderRadius:14,padding:"5px 10px",fontSize:"0.82rem",outline:"none"}}/>
-                  <button onClick={handleDelete} disabled={deleting} style={{background:"#c0392b",color:"white",border:"none",borderRadius:14,padding:"5px 12px",fontSize:"0.8rem",cursor:"pointer"}}>{deleting?"...":"Delete"}</button>
-                  <button onClick={cancelDelete} style={{background:"#555",color:"white",border:"none",borderRadius:14,padding:"5px 10px",fontSize:"0.8rem",cursor:"pointer"}}>✕</button>
-                </div>
-              </div>
-            ):(
-              <button onClick={()=>onDelete(p.name)} style={{position:"absolute",top:10,right:12,background:"rgba(0,0,0,0.5)",border:"1px solid rgba(255,255,255,0.2)",color:"white",width:26,height:26,borderRadius:"50%",cursor:"pointer",fontSize:"0.7rem",display:"flex",alignItems:"center",justifyContent:"center",zIndex:20}}>✕</button>
-            )}
-          </div>
+
+      {/* Viewport — only 3 cards ever in the DOM */}
+      <div ref={viewportRef} style={{position:"relative",borderRadius:20,overflow:"hidden",touchAction:"pan-y pinch-zoom"}}
+        onTouchStart={onTD} onTouchMove={onTM} onTouchEnd={onTE}>
+
+        {/* Height spacer from current card */}
+        <div style={{visibility:"hidden",pointerEvents:"none"}}>
+          {cardBody(currPhoto, idx, idx)}
         </div>
-        {photos.length>1&&<>
-          <button onClick={e=>{e.stopPropagation();if(!flyDir)dismiss('right');}} style={{position:"absolute",left:-18,top:"50%",transform:"translateY(-50%)",background:"rgba(0,0,0,0.5)",border:"1px solid rgba(255,255,255,0.25)",color:"white",width:36,height:36,borderRadius:"50%",cursor:"pointer",fontSize:"1.1rem",display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(6px)",zIndex:50}}>‹</button>
-          <button onClick={e=>{e.stopPropagation();if(!flyDir)dismiss('left');}} style={{position:"absolute",right:-18,top:"50%",transform:"translateY(-50%)",background:"rgba(0,0,0,0.5)",border:"1px solid rgba(255,255,255,0.25)",color:"white",width:36,height:36,borderRadius:"50%",cursor:"pointer",fontSize:"1.1rem",display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(6px)",zIndex:50}}>›</button>
-        </>}
+
+        {/* Prev slot */}
+        <div ref={prevSlotRef} style={{position:"absolute",inset:0,transform:"translateX(-100%)",willChange:"transform"}}>
+          {n > 1 && cardBody(prevPhoto, (idx - 1 + n) % n, (idx - 1 + n) % n)}
+        </div>
+
+        {/* Current slot */}
+        <div ref={currSlotRef} style={{position:"absolute",inset:0,transform:"translateX(0%)",willChange:"transform"}}>
+          {cardBody(currPhoto, idx, idx)}
+          {deleteId === currPhoto.name ? (
+            <div style={{position:"absolute",bottom:0,left:0,right:0,background:"rgba(0,0,0,0.9)",padding:"10px 14px",display:"flex",flexDirection:"column",gap:8,zIndex:20}}>
+              <span style={{color:"white",fontSize:"0.75rem",fontStyle:"italic",textAlign:"center"}}>Enter password to delete:</span>
+              <div style={{display:"flex",gap:6,justifyContent:"center"}}>
+                <input type="password" value={pwd} onChange={e=>setPwd(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")handleDelete();if(e.key==="Escape")cancelDelete();}} placeholder="password" autoFocus style={{flex:1,maxWidth:130,border:"none",borderRadius:14,padding:"5px 10px",fontSize:"0.82rem",outline:"none"}}/>
+                <button onClick={handleDelete} disabled={deleting} style={{background:"#c0392b",color:"white",border:"none",borderRadius:14,padding:"5px 12px",fontSize:"0.8rem",cursor:"pointer"}}>{deleting?"...":"Delete"}</button>
+                <button onClick={cancelDelete} style={{background:"#555",color:"white",border:"none",borderRadius:14,padding:"5px 10px",fontSize:"0.8rem",cursor:"pointer"}}>✕</button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={()=>onDelete(currPhoto.name)} style={{position:"absolute",top:10,right:12,background:"rgba(0,0,0,0.5)",border:"1px solid rgba(255,255,255,0.2)",color:"white",width:26,height:26,borderRadius:"50%",cursor:"pointer",fontSize:"0.7rem",display:"flex",alignItems:"center",justifyContent:"center",zIndex:20}}>✕</button>
+          )}
+        </div>
+
+        {/* Next slot */}
+        <div ref={nextSlotRef} style={{position:"absolute",inset:0,transform:"translateX(100%)",willChange:"transform"}}>
+          {n > 1 && cardBody(nextPhoto, (idx + 1) % n, (idx + 1) % n)}
+        </div>
       </div>
-      {photos.length>1&&(
+
+      {/* Prev / Next buttons */}
+      {n > 1 && <>
+        <button onClick={e=>{e.stopPropagation();goTo(idx-1);}} style={{position:"absolute",left:-18,top:"50%",transform:"translateY(-50%)",background:"rgba(0,0,0,0.5)",border:"1px solid rgba(255,255,255,0.25)",color:"white",width:36,height:36,borderRadius:"50%",cursor:"pointer",fontSize:"1.1rem",display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(6px)",zIndex:50}}>‹</button>
+        <button onClick={e=>{e.stopPropagation();goTo(idx+1);}} style={{position:"absolute",right:-18,top:"50%",transform:"translateY(-50%)",background:"rgba(0,0,0,0.5)",border:"1px solid rgba(255,255,255,0.25)",color:"white",width:36,height:36,borderRadius:"50%",cursor:"pointer",fontSize:"1.1rem",display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(6px)",zIndex:50}}>›</button>
+      </>}
+
+      {/* Dots */}
+      {n > 1 && (
         <div style={{display:"flex",justifyContent:"center",gap:6,marginTop:20}}>
-          {photos.map((_,i)=>(
-            <div key={i} onClick={()=>{if(!flyDir)setIdx(i);}} style={{width:i===idx?18:7,height:7,borderRadius:4,background:i===idx?"#d4a843":"rgba(255,255,255,0.3)",cursor:"pointer",transition:"all 0.3s"}}/>
+          {photos.map((_,i) => (
+            <div key={i} onClick={()=>goTo(i)} style={{width:i===idx?18:7,height:7,borderRadius:4,background:i===idx?"#d4a843":"rgba(255,255,255,0.3)",cursor:"pointer",transition:"all 0.3s"}}/>
           ))}
         </div>
       )}
@@ -385,7 +445,7 @@ export default function MemoriesSection() {
 
   return (
     <div ref={sectionRef} onClick={e => spawnStars(e, 14)} onMouseMove={handleMove} onTouchMove={e => { e.preventDefault(); handleMove(e); }} onTouchStart={e => spawnStars(e, 14)}
-      style={{ background: "linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)", padding: "80px 20px", position: "relative", overflow: "hidden", cursor: "crosshair", userSelect: "none", touchAction: "pan-y" }}>
+      style={{ background: "linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)", padding: "80px 20px", position: "relative", overflow: "hidden", cursor: "crosshair", userSelect: "none", touchAction: "pan-y pinch-zoom" }}>
       <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
         {bgStars.map(s => <div key={s.id} style={{ position: "absolute", width: s.size, height: s.size, background: "white", borderRadius: "50%", top: `${s.top}%`, left: `${s.left}%`, animation: `blink ${s.d}s ease-in-out infinite ${s.dl}s`, willChange: "opacity" }} />)}
       </div>
@@ -442,11 +502,9 @@ export default function MemoriesSection() {
                 <button onClick={() => loadPhotos(true)} style={{ background: "none", border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.5)", padding: "7px 18px", borderRadius: 20, cursor: "pointer", fontSize: "0.82rem", fontStyle: "italic", fontFamily: "'Lora',serif" }}>↻ Refresh</button>
               </div>
             ) : (
-              <SwipeHintWrapper>
-                <PhotoCarousel photos={photos} captions={captions} onDelete={(name) => { setDeleteId(name); setPwd(""); }}
-                  deleteId={deleteId} pwd={pwd} setPwd={setPwd} deleting={deleting}
-                  handleDelete={handleDelete} cancelDelete={() => { setDeleteId(null); setPwd(""); }} />
-              </SwipeHintWrapper>
+              <PhotoCarousel photos={photos} captions={captions} onDelete={(name) => { setDeleteId(name); setPwd(""); }}
+                deleteId={deleteId} pwd={pwd} setPwd={setPwd} deleting={deleting}
+                handleDelete={handleDelete} cancelDelete={() => { setDeleteId(null); setPwd(""); }} />
             )}
             <button onClick={() => setOpen(false)} style={{ marginTop: 28, background: "none", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.4)", padding: "8px 22px", borderRadius: 30, fontFamily: "'Lora',serif", fontSize: "0.8rem", fontStyle: "italic", cursor: "pointer" }}>close ↑</button>
           </div>
