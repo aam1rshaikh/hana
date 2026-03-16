@@ -8,9 +8,9 @@ function InstagramChatSection() {
   const [error, setError] = useState(false);
 
   const stats = [
-    { emoji: "💬", value: "1,33,273", label: "messages sent", sub: "and counting" },
+    { emoji: "💬", value: "1,33,273", label: "messages sent on instagram", sub: "" },
     { emoji: "📅", value: "2y 3m 15d", label: "days of conversation on instagram", sub: "" },
-    { emoji: "📖", value: "5,61,454", label: "words exchanged", sub: "that's 7 novels worth" },
+    { emoji: "📖", value: "5,61,454", label: "words exchanged", sub: "as many words as the entire Lord of the Rings trilogy" },
   ];
 
   const funFacts = [
