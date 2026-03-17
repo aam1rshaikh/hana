@@ -91,9 +91,6 @@ export default function CosmicLoveSection() {
 
         {unlocked && (
           <div style={{maxWidth:480,margin:"0 auto"}}>
-            <p style={{fontSize:"0.72rem",letterSpacing:"0.28em",textTransform:"uppercase",color:"#d4a843",marginBottom:24,fontFamily:"'Playfair Display',serif"}}>
-              Scale of my love
-            </p>
 
             <div style={{display:"flex",alignItems:"flex-end",justifyContent:"center",gap:"clamp(4px,1.5vw,12px)",marginBottom:40,flexWrap:"nowrap",width:"100%",padding:"12px 12px 0",boxSizing:"border-box"}}>
               {COSMIC_STEPS.map((step, i) => {

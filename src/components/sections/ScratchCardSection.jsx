@@ -73,6 +73,7 @@ export default function ScratchCardSection() {
   const [scratching, setScratching] = useState(false);
   const [percent, setPercent] = useState(0);
   const [photoReady, setPhotoReady] = useState(false);
+  const [scratchEnabled, setScratchEnabled] = useState(false);
   const canvasRef = useRef(null);
   const isDrawing = useRef(false);
   const hasStarted = useRef(false);
@@ -411,6 +412,7 @@ export default function ScratchCardSection() {
     setRevealed(false);
     setScratching(false);
     setPercent(0);
+    setScratchEnabled(false);
   };
 
   return (
@@ -422,11 +424,42 @@ export default function ScratchCardSection() {
         {/* Title — tap 5 times to open admin */}
         <p onClick={handleTitleTap} style={{fontSize:"0.7rem",letterSpacing:"0.28em",textTransform:"uppercase",color:"#d4a843",marginBottom:10,fontFamily:"'Playfair Display',serif",cursor:"default",userSelect:"none"}}>Little notes for you</p>
         <h2 style={{fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:"clamp(1.4rem,4vw,2rem)",color:"white",marginBottom:8,textShadow:"0 0 30px rgba(212,168,67,0.3)"}}>Scratch to reveal 🌸</h2>
-        <p style={{color:"rgba(255,255,255,0.4)",fontSize:"0.78rem",marginBottom:32,fontFamily:"'Playfair Display',serif",fontStyle:"italic"}}>
+        <p style={{color:"rgba(255,255,255,0.4)",fontSize:"0.78rem",marginBottom:16,fontFamily:"'Playfair Display',serif",fontStyle:"italic"}}>
           {photosLoading ? "✦" : allDone ? "All revealed 💛" : photos.length > 0 ? `Card ${pos+1} of ${photos.length}` : ""}
         </p>
 
-        {/* Card */}
+        {/* Scratch button — always visible, glows when actionable, disabled while scratching */}
+        {!photosLoading && photos.length > 0 && (
+          <button
+            onClick={e => {
+              e.stopPropagation();
+              if (!scratchEnabled || allDone) {
+                if (allDone) startOver();
+                setScratchEnabled(true);
+              }
+            }}
+            disabled={scratchEnabled && !allDone}
+            style={{
+              display:"inline-flex", alignItems:"center", gap:8,
+              background:"transparent",
+              border:`2px solid rgba(212,168,67,${scratchEnabled && !allDone ? 0.25 : 0.7})`,
+              color: scratchEnabled && !allDone ? "rgba(212,168,67,0.3)" : "#d4a843",
+              padding:"12px 28px", borderRadius:60,
+              fontFamily:"'Playfair Display',serif", fontStyle:"italic", fontSize:"1rem",
+              cursor: scratchEnabled && !allDone ? "default" : "pointer",
+              marginBottom:24,
+              transition:"all 0.4s",
+              animation: scratchEnabled && !allDone ? "none" : "scratchGlow 1.8s ease-in-out infinite",
+              boxShadow: scratchEnabled && !allDone ? "none" : "0 0 16px rgba(212,168,67,0.4), 0 0 32px rgba(212,168,67,0.2)",
+            }}
+          >
+            {allDone ? "✦ Scratch again" : "✦ Start scratching"}
+          </button>
+        )}
+        <style>{`@keyframes scratchGlow{0%,100%{box-shadow:0 0 12px rgba(212,168,67,0.4),0 0 28px rgba(212,168,67,0.2)}50%{box-shadow:0 0 22px rgba(212,168,67,0.7),0 0 48px rgba(212,168,67,0.35),0 0 80px rgba(212,168,67,0.15)}}`}</style>
+
+        {/* Card — fixed height wrapper prevents layout collapse between transitions */}
+        <div style={{minHeight:360,position:"relative"}}>
         {photosLoading ? (
           <div style={{maxWidth:320,margin:"0 auto",borderRadius:20,background:"rgba(255,255,255,0.04)",height:320,display:"flex",alignItems:"center",justifyContent:"center"}}>
             <p style={{color:"rgba(255,255,255,0.3)",fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:"0.9rem"}}>Loading...</p>
@@ -439,7 +472,7 @@ export default function ScratchCardSection() {
         <div
           key={cardKey}
           onClick={handleNextTap}
-          style={{position:"relative",maxWidth:320,margin:"0 auto",borderRadius:20,overflow:"hidden",boxShadow:"0 24px 60px rgba(0,0,0,0.6),0 0 40px rgba(212,168,67,0.15)",cursor:revealed?"pointer":"crosshair",userSelect:"none",WebkitUserSelect:"none"}}
+          style={{position:"relative",maxWidth:320,margin:"0 auto",borderRadius:20,overflow:"hidden",boxShadow:"0 24px 60px rgba(0,0,0,0.6),0 0 40px rgba(212,168,67,0.15)",cursor:revealed?"pointer":"crosshair",userSelect:"none",WebkitUserSelect:"none",background:"#0a0a1a",minHeight:200}}
         >
           <img
             src={currentPhoto}
@@ -450,12 +483,12 @@ export default function ScratchCardSection() {
             ref={canvasRef}
             width={640} height={640}
             style={{position:"absolute",inset:0,width:"100%",height:"100%",borderRadius:20,touchAction:"none",pointerEvents:revealed?"none":"auto",willChange:"opacity",transform:"translateZ(0)"}}
-            onMouseDown={e=>{ if(!photoReady) return; isDrawing.current=true;lastPos.current=null;scratch(e);}}
-            onMouseMove={e=>{ if(!photoReady) return; scratch(e);}}
+            onMouseDown={e=>{ if(!photoReady||!scratchEnabled) return; isDrawing.current=true;lastPos.current=null;scratch(e);}}
+            onMouseMove={e=>{ if(!photoReady||!scratchEnabled) return; scratch(e);}}
             onMouseUp={()=>{isDrawing.current=false;lastPos.current=null;}}
             onMouseLeave={()=>{isDrawing.current=false;lastPos.current=null;}}
-            onTouchStart={e=>{ if(!photoReady) return; isDrawing.current=true;lastPos.current=null;scratch(e);}}
-            onTouchMove={e=>{ if(!photoReady) return; scratch(e);}}
+            onTouchStart={e=>{ if(!photoReady||!scratchEnabled) return; isDrawing.current=true;lastPos.current=null;scratch(e);}}
+            onTouchMove={e=>{ if(!photoReady||!scratchEnabled) return; scratch(e);}}
             onTouchEnd={()=>{isDrawing.current=false;lastPos.current=null;}}
           />
           {/* Loading shimmer over canvas until photo is ready */}
@@ -468,7 +501,7 @@ export default function ScratchCardSection() {
           {revealed && (
             <div style={{position:"absolute",inset:0,display:"flex",alignItems:"flex-end",justifyContent:"center",borderRadius:20,background:"linear-gradient(transparent 55%,rgba(0,0,0,0.6))",animation:"fadeIn 0.5s ease"}}>
               <p style={{color:"white",fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:"0.85rem",margin:"0 0 18px",textShadow:"0 1px 4px rgba(0,0,0,0.8)"}}>
-                {pos >= photos.length - 1 ? "Tap to start over ✨" : "Tap to reveal next 🌸"}
+                {pos >= photos.length - 1 ? "Tap to finish 🌸" : "Tap to reveal next 🌸"}
               </p>
             </div>
           )}
@@ -483,6 +516,7 @@ export default function ScratchCardSection() {
             </div>
           </div>
         )}
+        </div>
       </div>
 
       {/* Hidden admin modal */}

@@ -108,83 +108,40 @@ function SwipeHintWrapper({ children }) {
 function PhotoCarousel({ photos, captions, onDelete, deleteId, pwd, setPwd, deleting, handleDelete, cancelDelete }) {
   const [idx, setIdx] = useState(0);
   const [loadedImgs, setLoadedImgs] = useState(new Set());
-  const idxRef = useRef(0);
-  const viewportRef = useRef(null);
-  const prevSlotRef = useRef(null);
-  const currSlotRef = useRef(null);
-  const nextSlotRef = useRef(null);
-  const startXRef = useRef(0);
-  const startYRef = useRef(0);
-  const currentDxRef = useRef(0);
-  const isDraggingRef = useRef(false);
-  const isHorizontalRef = useRef(null);
+  const scrollRef = useRef(null);
+  const isScrollingRef = useRef(false);
+  const lastIdxRef = useRef(0);
 
-  // Apply position to the 3 slots: prev=-100%, curr=0%, next=100%
-  // Plus drag offset on all three
-  const applySlots = useCallback((dx = 0, animate = false) => {
-    const tr = animate ? "transform 0.32s cubic-bezier(0.25,0.46,0.45,0.94)" : "none";
-    [prevSlotRef, currSlotRef, nextSlotRef].forEach((ref, i) => {
-      if (!ref.current) return;
-      const base = (i - 1) * 100; // -100, 0, 100
-      ref.current.style.transition = tr;
-      ref.current.style.transform = `translateX(calc(${base}% + ${dx}px))`;
-    });
-  }, []);
-
+  // Sync dot indicator to scroll position
   useEffect(() => {
-    idxRef.current = idx;
-    applySlots(0, true);
-  }, [idx, applySlots]);
-
-  const goTo = useCallback((i) => {
-    setIdx((i + photos.length) % photos.length);
+    const el = scrollRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      if (isScrollingRef.current) return;
+      const w = el.offsetWidth;
+      const newIdx = Math.round(el.scrollLeft / w);
+      if (newIdx !== lastIdxRef.current) {
+        lastIdxRef.current = newIdx;
+        setIdx(newIdx);
+      }
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
   }, [photos.length]);
 
-  const onTD = useCallback((e) => {
-    if (e.touches.length > 1) return;
-    startXRef.current = e.touches[0].clientX;
-    startYRef.current = e.touches[0].clientY;
-    currentDxRef.current = 0;
-    isDraggingRef.current = true;
-    isHorizontalRef.current = null;
-    applySlots(0, false);
-  }, [applySlots]);
-
-  const onTM = useCallback((e) => {
-    if (!isDraggingRef.current || e.touches.length > 1) return;
-    const dx = e.touches[0].clientX - startXRef.current;
-    const dy = e.touches[0].clientY - startYRef.current;
-    if (isHorizontalRef.current === null && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
-      isHorizontalRef.current = Math.abs(dx) > Math.abs(dy);
-    }
-    if (isHorizontalRef.current === false) return;
-    e.preventDefault();
-    currentDxRef.current = dx;
-    const atStart = idxRef.current === 0 && dx > 0;
-    const atEnd = idxRef.current === photos.length - 1 && dx < 0;
-    applySlots((atStart || atEnd) ? dx * 0.15 : dx, false);
-  }, [photos.length, applySlots]);
-
-  const onTE = useCallback(() => {
-    if (!isDraggingRef.current) return;
-    isDraggingRef.current = false;
-    const dx = currentDxRef.current;
-    const w = viewportRef.current?.offsetWidth || 360;
-    if (isHorizontalRef.current && Math.abs(dx) > w * 0.2) {
-      goTo(dx < 0 ? idxRef.current + 1 : idxRef.current - 1);
-    } else {
-      applySlots(0, true);
-    }
-    currentDxRef.current = 0;
-    isHorizontalRef.current = null;
-  }, [goTo, applySlots]);
+  const goTo = useCallback((i) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const target = Math.max(0, Math.min(i, photos.length - 1));
+    isScrollingRef.current = true;
+    el.scrollTo({ left: target * el.offsetWidth, behavior: 'smooth' });
+    setIdx(target);
+    lastIdxRef.current = target;
+    setTimeout(() => { isScrollingRef.current = false; }, 400);
+  }, [photos.length]);
 
   if (!photos.length) return null;
-
   const n = photos.length;
-  const prevPhoto = photos[(idx - 1 + n) % n];
-  const currPhoto = photos[idx];
-  const nextPhoto = photos[(idx + 1) % n];
 
   const CardSkeleton = () => (
     <div style={{position:"absolute",inset:0,zIndex:5,background:"linear-gradient(135deg,#1a1a2e,#16213e)",display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -208,52 +165,29 @@ function PhotoCarousel({ photos, captions, onDelete, deleteId, pwd, setPwd, dele
     </div>
   );
 
-  const cardBody = (photo, sceneIdx, photoIdx) => {
-    const BgComp = GHIBLI_SCENES[sceneIdx % GHIBLI_SCENES.length];
+  const cardBody = (photo, photoIdx) => {
+    const BgComp = GHIBLI_SCENES[photoIdx % GHIBLI_SCENES.length];
     const loaded = loadedImgs.has(photo.url);
     return (
-      <div style={{position:"relative",height:"100%"}}>
+      <div style={{position:"relative",height:"100%",borderRadius:20,overflow:"hidden",flexShrink:0,width:"100%",scrollSnapAlign:"start"}}>
         <div style={{position:"absolute",inset:0,zIndex:0,opacity:loaded?1:0,transition:"opacity 0.5s ease"}}><BgComp /></div>
         {!loaded && <CardSkeleton />}
         <div style={{position:"relative",zIndex:10,padding:"44px 52px 26px",display:"flex",flexDirection:"column",alignItems:"center",opacity:loaded?1:0,transition:"opacity 0.5s ease"}}>
           <div style={{width:"100%",background:"#fafaf5",borderRadius:3,padding:"6px 6px 0 6px",boxShadow:"0 8px 30px rgba(0,0,0,0.7)",transform:"rotate(-0.8deg)"}}>
-            <img src={photo.url} alt="" decoding="async"
-              style={{width:"100%",height:"auto",display:"block",borderRadius:2,pointerEvents:"none"}}
-              onLoad={()=>setLoadedImgs(prev=>new Set([...prev,photo.url]))} />
+              <div style={{width:"100%",minHeight:200,display:"flex",alignItems:"center",justifyContent:"center",background:"#f0ece4",borderRadius:2}}>
+                <img src={photo.url} alt="" decoding="async"
+                  style={{width:"100%",height:"auto",maxHeight:400,objectFit:"contain",display:"block",borderRadius:2,pointerEvents:"none"}}
+                  onLoad={()=>setLoadedImgs(prev=>new Set([...prev,photo.url]))} />
+              </div>
             <div style={{position:"relative",height:22,display:"flex",alignItems:"center",justifyContent:"center"}}>
               <PolaroidFlora scene={photoIdx % GHIBLI_SCENES.length}/>
               {captions[photo.name]&&(<p style={{margin:"0 20px",textAlign:"center",fontFamily:"'Lora',serif",fontStyle:"italic",fontSize:"0.65rem",color:"#5a3a2a",lineHeight:1.2,zIndex:1,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis"}}>"{captions[photo.name]}"</p>)}
             </div>
           </div>
         </div>
-        <div style={{position:"relative",zIndex:10,textAlign:"center",color:"rgba(255,255,255,0.8)",fontSize:"0.72rem",fontStyle:"italic",letterSpacing:"0.1em",padding:"4px 0 26px",opacity:loaded?1:0,transition:"opacity 0.5s ease"}}>
-          {photoIdx + 1} / {n}
-        </div>
-      </div>
-    );
-  };
-
-  return (
-    <div style={{position:"relative",maxWidth:400,margin:"0 auto",paddingBottom:4}}>
-
-      {/* Viewport — only 3 cards ever in the DOM */}
-      <div ref={viewportRef} style={{position:"relative",borderRadius:20,overflow:"hidden",touchAction:"pan-y pinch-zoom"}}
-        onTouchStart={onTD} onTouchMove={onTM} onTouchEnd={onTE}>
-
-        {/* Height spacer from current card */}
-        <div style={{visibility:"hidden",pointerEvents:"none"}}>
-          {cardBody(currPhoto, idx, idx)}
-        </div>
-
-        {/* Prev slot */}
-        <div ref={prevSlotRef} style={{position:"absolute",inset:0,transform:"translateX(-100%)",willChange:"transform"}}>
-          {n > 1 && cardBody(prevPhoto, (idx - 1 + n) % n, (idx - 1 + n) % n)}
-        </div>
-
-        {/* Current slot */}
-        <div ref={currSlotRef} style={{position:"absolute",inset:0,transform:"translateX(0%)",willChange:"transform"}}>
-          {cardBody(currPhoto, idx, idx)}
-          {deleteId === currPhoto.name ? (
+        {/* Delete overlay — only on active card */}
+        {photoIdx === idx && (
+          deleteId === photo.name ? (
             <div style={{position:"absolute",bottom:0,left:0,right:0,background:"rgba(0,0,0,0.9)",padding:"10px 14px",display:"flex",flexDirection:"column",gap:8,zIndex:20}}>
               <span style={{color:"white",fontSize:"0.75rem",fontStyle:"italic",textAlign:"center"}}>Enter password to delete:</span>
               <div style={{display:"flex",gap:6,justifyContent:"center"}}>
@@ -263,14 +197,37 @@ function PhotoCarousel({ photos, captions, onDelete, deleteId, pwd, setPwd, dele
               </div>
             </div>
           ) : (
-            <button onClick={()=>onDelete(currPhoto.name)} style={{position:"absolute",top:10,right:12,background:"rgba(0,0,0,0.5)",border:"1px solid rgba(255,255,255,0.2)",color:"white",width:26,height:26,borderRadius:"50%",cursor:"pointer",fontSize:"0.7rem",display:"flex",alignItems:"center",justifyContent:"center",zIndex:20}}>✕</button>
-          )}
-        </div>
+            <button onClick={()=>onDelete(photo.name)} style={{position:"absolute",top:10,right:12,background:"rgba(0,0,0,0.5)",border:"1px solid rgba(255,255,255,0.2)",color:"white",width:26,height:26,borderRadius:"50%",cursor:"pointer",fontSize:"0.7rem",display:"flex",alignItems:"center",justifyContent:"center",zIndex:20}}>✕</button>
+          )
+        )}
+      </div>
+    );
+  };
 
-        {/* Next slot */}
-        <div ref={nextSlotRef} style={{position:"absolute",inset:0,transform:"translateX(100%)",willChange:"transform"}}>
-          {n > 1 && cardBody(nextPhoto, (idx + 1) % n, (idx + 1) % n)}
-        </div>
+  return (
+    <div style={{position:"relative",maxWidth:400,margin:"0 auto",paddingBottom:4}}>
+
+      {/* Native scroll-snap container — browser handles all touch physics */}
+      <div
+        ref={scrollRef}
+        style={{
+          display:"flex",
+          overflowX:"scroll",
+          overflowY:"hidden",
+          scrollSnapType:"x mandatory",
+          WebkitOverflowScrolling:"touch",
+          scrollBehavior:"auto",
+          borderRadius:20,
+          msOverflowStyle:"none",
+          scrollbarWidth:"none",
+        }}
+      >
+        <style>{`.mem-scroll::-webkit-scrollbar{display:none}`}</style>
+        {photos.map((photo, i) => (
+          <div key={photo.name} style={{flexShrink:0,width:"100%",scrollSnapAlign:"start",scrollSnapStop:"always"}}>
+            {cardBody(photo, i)}
+          </div>
+        ))}
       </div>
 
       {/* Prev / Next buttons */}
@@ -287,6 +244,13 @@ function PhotoCarousel({ photos, captions, onDelete, deleteId, pwd, setPwd, dele
           ))}
         </div>
       )}
+
+      {/* Counter */}
+      <div style={{textAlign:"center",marginTop:10}}>
+        <span style={{color:"rgba(255,255,255,0.5)",fontSize:"0.72rem",fontStyle:"italic",letterSpacing:"0.1em"}}>
+          {idx + 1} / {n}
+        </span>
+      </div>
     </div>
   );
 }
