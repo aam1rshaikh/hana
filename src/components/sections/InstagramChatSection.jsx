@@ -6,6 +6,7 @@ function InstagramChatSection() {
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState(false);
+  const [showStats, setShowStats] = useState(false);
 
   const stats = [
     { emoji: "💬", value: "1,33,273", label: "messages sent on instagram", sub: "" },
@@ -329,7 +330,31 @@ function InstagramChatSection() {
           </div>
         </Fade>
 
+        {/* Stats toggle button */}
+        <Fade delay={0.1}>
+          <div style={{ textAlign: "center", marginBottom: 20 }}>
+            <button
+              onClick={() => setShowStats(s => !s)}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 8,
+                background: showStats ? "rgba(160,130,80,0.15)" : "transparent",
+                border: "1.5px solid rgba(160,130,80,0.45)",
+                color: "#6b4c3b",
+                padding: "11px 26px", borderRadius: 60,
+                fontFamily: "'Special Elite', 'Courier New', monospace",
+                fontSize: "0.95rem", cursor: "pointer",
+                transition: "all 0.3s ease",
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = "rgba(160,130,80,0.15)"}
+              onMouseLeave={e => e.currentTarget.style.background = showStats ? "rgba(160,130,80,0.15)" : "transparent"}
+            >
+              A little about us 🌸
+            </button>
+          </div>
+        </Fade>
+
         {/* Stat cards */}
+        {showStats && (
         <Fade delay={0.1}>
           <style>{`
             @media (max-width: 480px) {
@@ -358,6 +383,7 @@ function InstagramChatSection() {
             ))}
           </div>
         </Fade>
+        )}
 
         {/* Fun facts */}
         <Fade delay={0.15}>
